@@ -125,11 +125,17 @@ function readForm (reader) {
 }
 
 function * tokenizer (str) {
-  const re = /[\s,]*(~@|[[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s[\]{}('"`,;)]*)/g;
-  let match = re.exec(str);
-  while (match[1] !== '') {
-    yield match[1];
-    match = re.exec(str);
+  for (const line of str.split('\n')) {
+    const re = /[\s,]*(~@|[[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s[\]{}('"`,;)]*)/g;
+    let match = re.exec(line);
+    while (match[1] !== '') {
+      if (match[1] === ';') {
+        break;
+      }
+
+      yield match[1];
+      match = re.exec(line);
+    }
   }
 }
 
