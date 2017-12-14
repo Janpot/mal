@@ -80,7 +80,7 @@ DOCKERIZE =
 
 IMPLS = ada awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
 	elisp elixir elm erlang es6 factor forth fsharp go groovy gst guile haskell \
-	haxe hy io java js julia kotlin livescript logo lua make mal matlab miniMAL \
+	haxe hy io java js ecmascript6 julia kotlin livescript logo lua make mal matlab miniMAL \
 	nim objc objpascal ocaml perl perl6 php pil plpgsql plsql powershell ps \
 	python r racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
 	ts vb vhdl vimscript yorick
@@ -203,6 +203,7 @@ hy_STEP_TO_PROG =      hy/$($(1)).hy
 io_STEP_TO_PROG =      io/$($(1)).io
 java_STEP_TO_PROG =    java/target/classes/mal/$($(1)).class
 js_STEP_TO_PROG =      js/$($(1)).js
+ecmascript6_STEP_TO_PROG = ecmascript6/$($(1)).mjs
 julia_STEP_TO_PROG =   julia/$($(1)).jl
 kotlin_STEP_TO_PROG =  kotlin/$($(1)).jar
 livescript_STEP_TO_PROG = livescript/$($(1)).js
@@ -306,7 +307,7 @@ get_run_prefix = $(strip $(if $(strip $(DOCKERIZE) $(4)),\
 
 # Takes impl and step
 # Returns the runtest command prefix (with runtest options) for testing the given step
-get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb,$(1)),RAW=1,)) \
+get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter ecmascript6 cs fsharp tcl vb,$(1)),RAW=1,)) \
 		    ../runtest.py $(opt_DEFERRABLE) $(opt_OPTIONAL) $(call $(1)_TEST_OPTS) $(TEST_OPTS)
 
 # Takes impl and step
