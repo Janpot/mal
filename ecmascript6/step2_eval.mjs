@@ -27,8 +27,8 @@ function evalAst (ast, env) {
     case MalList:
       return new MalList(ast.items.map(item => EVAL(item, env)));
     case MalSymbol:
-      if (replEnv[ast.name]) {
-        return replEnv[ast.name];
+      if (env[ast.name]) {
+        return env[ast.name];
       }
       throw new Error(`Unknown symbol "${ast.name}"`);
     case MalVector:
