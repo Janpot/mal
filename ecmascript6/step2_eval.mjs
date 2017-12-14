@@ -7,7 +7,8 @@ import {
   MalSymbol,
   MalNumber,
   MalVector,
-  MalHashMap
+  MalHashMap,
+  MalFunction
 } from './types.mjs';
 
 function READ (input) {
@@ -15,20 +16,16 @@ function READ (input) {
 }
 
 const replEnv = {
-  '+': (a, b) => new MalNumber(a.value + b.value),
-  '-': (a, b) => new MalNumber(a.value - b.value),
-  '*': (a, b) => new MalNumber(a.value * b.value),
-  '/': (a, b) => new MalNumber(a.value / b.value)
+  '+': new MalFunction((a, b) => new MalNumber(a.value + b.value)),
+  '-': new MalFunction((a, b) => new MalNumber(a.value - b.value)),
+  '*': new MalFunction((a, b) => new MalNumber(a.value * b.value)),
+  '/': new MalFunction((a, b) => new MalNumber(a.value / b.value))
 };
 
 function evalAst (ast, env) {
   switch (ast.constructor) {
     case MalList:
-      if (ast.items.length <= 0) {
-        return ast;
-      }
-      const evaledItems = ast.items.map(item => EVAL(item, env));
-      return evaledItems[0](...evaledItems.slice(1));
+      return new MalList(ast.items.map(item => EVAL(item, env)));
     case MalSymbol:
       if (replEnv[ast.name]) {
         return replEnv[ast.name];
@@ -48,6 +45,11 @@ function evalAst (ast, env) {
 function EVAL (ast, env) {
   if (!ast) {
     return ast;
+  }
+
+  if (ast.constructor === MalList && ast.items.length > 0) {
+    const [ malFn, ...malArgs ] = evalAst(ast, env).items;
+    return malFn.apply(null, malArgs);
   }
 
   return evalAst(ast, env);

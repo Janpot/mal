@@ -7,12 +7,20 @@ export class MalList extends MalType {
     super();
     this.items = items;
   }
+
+  get length () {
+    return this.items.length;
+  }
 }
 
 export class MalVector extends MalType {
   constructor (items) {
     super();
     this.items = items;
+  }
+
+  get length () {
+    return this.items.length;
   }
 }
 
@@ -48,6 +56,17 @@ export class MalKeyword extends MalType {
   constructor (name) {
     super();
     this.name = name;
+  }
+}
+
+export class MalFunction extends MalType {
+  constructor (fn) {
+    super();
+    this._fn = fn;
+  }
+
+  apply (...args) {
+    return this._fn.apply(...args);
   }
 }
 
