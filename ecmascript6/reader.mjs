@@ -10,6 +10,7 @@ import {
   MalHashMap,
   MalKeyword
 } from './types.mjs';
+import { pairwise } from './iterTools.mjs';
 
 const EOF = null;
 
@@ -91,12 +92,6 @@ function readList (reader) {
 
 function readVector (reader) {
   return new MalVector(readListContent(reader, ']'));
-}
-
-function * pairwise (array) {
-  for (let i = 0; i < array.length; i += 2) {
-    yield array.slice(i, i + 2);
-  }
 }
 
 function readHashMap (reader) {
