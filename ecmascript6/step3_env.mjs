@@ -31,7 +31,7 @@ function evalAst (ast, env) {
     case MalSymbol:
       const value = env.getValue(ast.name);
       if (!value) {
-        throw new Error(`Unknown symbol "${ast.name}"`);
+        throw new Error(`Unable to resolve symbol: ${ast.name} in this context`);
       }
       return value;
     case MalVector:
@@ -51,35 +51,35 @@ function EVAL (ast, env) {
   }
 
   if (ast.constructor === MalList && ast.items.length > 0) {
-    if (ast.items[0] instanceof MalSymbol) {
-      switch (ast.items[0].name) {
+    const [ func, ...args ] = ast.items;
+    if (func instanceof MalSymbol) {
+      switch (func.name) {
         case 'def!':
-          if (ast.length < 3) {
+          if (args.length < 2) {
             throw new Error('Too few arguments to def!');
-          } else if (ast.length > 3) {
+          } else if (args.length > 2) {
             throw new Error('Too many arguments to def!');
-          } else if (!(ast.items[1] instanceof MalSymbol)) {
+          } else if (!(args[0] instanceof MalSymbol)) {
             throw new Error('First argument to def! must be a Symbol');
           }
-          const value = EVAL(ast.items[2], env);
-          env.setValue(ast.items[1].name, value);
+          const value = EVAL(args[1], env);
+          env.setValue(args[0].name, value);
           return value;
         case 'let*':
-          if (!(ast.items[1] instanceof MalList || ast.items[1] instanceof MalVector)) {
+          if (!(args[0] instanceof MalList || args[0] instanceof MalVector)) {
             throw new Error('Bad binding form, expected vector');
-          } else if (ast.items[1].length % 2 !== 0) {
+          } else if (args[0].length % 2 !== 0) {
             throw new Error('let! requires an even number of forms in binding vector');
           }
           const newEnv = new Env(env);
-          Array.from(pairwise(ast.items[1].items))
-            .forEach(([ symbol, expression ]) => {
-              if (!(symbol instanceof MalSymbol)) {
-                throw new Error('Bad binding form, expected symbol');
-              }
-              const value = EVAL(expression, newEnv);
-              newEnv.setValue(symbol.name, value);
-            });
-          return EVAL(ast.items[2], newEnv);
+          for (const [ symbol, expression ] of pairwise(args[0].items)) {
+            if (!(symbol instanceof MalSymbol)) {
+              throw new Error('Bad binding form, expected symbol');
+            }
+            const value = EVAL(expression, newEnv);
+            newEnv.setValue(symbol.name, value);
+          }
+          return EVAL(args[1], newEnv);
       }
     }
     const [ malFn, ...malArgs ] = evalAst(ast, env).items;
