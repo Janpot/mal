@@ -104,23 +104,19 @@ function EVAL (ast, env) {
         } else if (![ MalList, MalVector ].includes(args[0].constructor)) {
           throw new Error('Parameter declaration def should be a vector');
         }
-        const binds = args[0].items.map(bind => {
+        const [ paramDecl, ...fnBody ] = args;
+        const params = paramDecl.items.map(bind => {
           if (!(bind instanceof MalSymbol)) {
             throw new Error(`fn params must be Symbols`);
           }
           return bind.name;
         });
-        const ctx = {
-          env,
-          binds,
-          fnBody: args.slice(1)
-        };
-        return new MalFunction(ctx, (ctx, params) => {
-          const newEnv = new Env(ctx.env, ctx.binds, params);
-          if (ctx.fnBody.length <= 0) {
+        return new MalFunction(env, params, fnBody, (env, params, ast, paramValues) => {
+          const newEnv = new Env(env, params, paramValues);
+          if (ast.length <= 0) {
             return MAL_NIL;
           }
-          const evaledArgs = ctx.fnBody.map(arg => EVAL(arg, newEnv));
+          const evaledArgs = ast.map(arg => EVAL(arg, newEnv));
           return evaledArgs[evaledArgs.length - 1];
         });
     }

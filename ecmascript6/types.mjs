@@ -180,18 +180,16 @@ export class MalKeyword extends MalType {
 }
 
 export class MalFunction extends MalType {
-  static raw (fn) {
-    return new MalFunction(null, (ctx, args) => fn(...args));
-  }
-
-  constructor (ctx, fn) {
+  constructor (env, params, fnBody, fn) {
     super();
     this._fn = fn;
-    this._ctx = ctx;
+    this.env = env;
+    this.params = params;
+    this.fnBody = fnBody;
   }
 
   apply (args) {
-    return this._fn.apply(null, [ this._ctx, args ]);
+    return this._fn.apply(null, [ this.env, this.params, this.fnBody, args ]);
   }
 
   equals (other) {
@@ -200,6 +198,25 @@ export class MalFunction extends MalType {
 
   toString () {
     return '#';
+  }
+}
+
+export class MalRawFunction extends MalFunction {
+  constructor (fn) {
+    super();
+    this._fn = fn;
+  }
+
+  apply (args) {
+    return this._fn.apply(null, args);
+  }
+}
+
+export class MalTcoFunction extends MalFunction {
+  constructor (env, params, fnBody) {
+    super(env, params, fnBody, () => {
+      throw new Error('Must be called through TCO');
+    });
   }
 }
 
