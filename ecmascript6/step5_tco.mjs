@@ -10,7 +10,6 @@ import {
   MalSymbol,
   MalVector,
   MalHashMap,
-  MalFunction,
   MalTcoFunction,
   MAL_NIL,
   MAL_FALSE
