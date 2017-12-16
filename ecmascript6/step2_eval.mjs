@@ -8,7 +8,8 @@ import {
   MalNumber,
   MalVector,
   MalHashMap,
-  MalFunction
+  MalFunction,
+  MAL_NIL
 } from './types.mjs';
 
 function READ (input) {
@@ -16,23 +17,23 @@ function READ (input) {
 }
 
 const replEnv = {
-  '+': new MalFunction((a, b) => new MalNumber(a.value + b.value)),
-  '-': new MalFunction((a, b) => new MalNumber(a.value - b.value)),
-  '*': new MalFunction((a, b) => new MalNumber(a.value * b.value)),
-  '/': new MalFunction((a, b) => new MalNumber(a.value / b.value))
+  '+': MalFunction.raw((a, b) => new MalNumber(a.value + b.value)),
+  '-': MalFunction.raw((a, b) => new MalNumber(a.value - b.value)),
+  '*': MalFunction.raw((a, b) => new MalNumber(a.value * b.value)),
+  '/': MalFunction.raw((a, b) => new MalNumber(a.value / b.value))
 };
 
 function evalAst (ast, env) {
   switch (ast.constructor) {
     case MalList:
       return new MalList(ast.items.map(item => EVAL(item, env)));
+    case MalVector:
+      return new MalVector(ast.items.map(item => EVAL(item, env)));
     case MalSymbol:
       if (env[ast.name]) {
         return env[ast.name];
       }
       throw new Error(`Unknown symbol "${ast.name}"`);
-    case MalVector:
-      return new MalVector(ast.items.map(item => EVAL(item, env)));
     case MalHashMap:
       const evaluatedEntries = Array.from(ast.items.entries())
         .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
@@ -44,15 +45,15 @@ function evalAst (ast, env) {
 
 function EVAL (ast, env) {
   if (!ast) {
+    return MAL_NIL;
+  } else if (!(ast instanceof MalList)) {
+    return evalAst(ast, env);
+  } else if (ast.length <= 0) {
     return ast;
   }
 
-  if (ast.constructor === MalList && ast.items.length > 0) {
-    const [ malFn, ...malArgs ] = evalAst(ast, env).items;
-    return malFn.apply(null, malArgs);
-  }
-
-  return evalAst(ast, env);
+  const [ malFn, ...malArgs ] = evalAst(ast, env).items;
+  return malFn.apply(malArgs);
 }
 
 function PRINT (output) {

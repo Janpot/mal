@@ -3,12 +3,12 @@ import {
   MalSymbol,
   MalNumber,
   MalVector,
-  MalNil,
-  MalTrue,
-  MalFalse,
   MalString,
   MalHashMap,
-  MalKeyword
+  MalKeyword,
+  MAL_NIL,
+  MAL_TRUE,
+  MAL_FALSE
 } from './types.mjs';
 import { pairwise } from './iterTools.mjs';
 
@@ -38,11 +38,11 @@ class Reader {
 function readAtom (reader) {
   const token = reader.next();
   if (token === 'nil') {
-    return new MalNil();
+    return MAL_NIL;
   } else if (token === 'true') {
-    return new MalTrue();
+    return MAL_TRUE;
   } else if (token === 'false') {
-    return new MalFalse();
+    return MAL_FALSE;
   } else if (!isNaN(Number(token))) {
     return new MalNumber(Number(token));
   } else if (token.startsWith('"')) {
@@ -51,7 +51,12 @@ function readAtom (reader) {
     }
     const stringValue = token
       .slice(1, token.length - 1)
-      .replace(/\\(["n\\])/g, (_, character) => character);
+      .replace(/\\(["n\\])/g, (_, character) => {
+        switch (character) {
+          case 'n': return '\n';
+          default: return character;
+        }
+      });
     return new MalString(stringValue);
   } else if (token.startsWith(':')) {
     return new MalKeyword(token.slice(1));

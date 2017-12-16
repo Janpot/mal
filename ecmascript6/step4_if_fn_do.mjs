@@ -3,15 +3,16 @@ import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
 import { Env } from './env.mjs';
 import { pairwise } from './iterTools.mjs';
+import * as core from './core.mjs';
 
 import {
   MalList,
   MalSymbol,
-  MalNumber,
   MalVector,
   MalHashMap,
   MalFunction,
-  MAL_NIL
+  MAL_NIL,
+  MAL_FALSE
 } from './types.mjs';
 
 function READ (input) {
@@ -19,10 +20,7 @@ function READ (input) {
 }
 
 const replEnv = new Env();
-replEnv.setValue('+', MalFunction.raw((a, b) => new MalNumber(a.value + b.value)));
-replEnv.setValue('-', MalFunction.raw((a, b) => new MalNumber(a.value - b.value)));
-replEnv.setValue('*', MalFunction.raw((a, b) => new MalNumber(a.value * b.value)));
-replEnv.setValue('/', MalFunction.raw((a, b) => new MalNumber(a.value / b.value)));
+core.bindTo(replEnv);
 
 function evalAst (ast, env) {
   switch (ast.constructor) {
@@ -83,9 +81,50 @@ function EVAL (ast, env) {
           newEnv.setValue(symbol.name, value);
         }
         return EVAL(args[1], newEnv);
+      case 'do':
+        const evaledArgs = evalAst(new MalList(args), env);
+        return evaledArgs.items[evaledArgs.length - 1];
+      case 'if':
+        if (args.length < 2) {
+          throw new Error('Too few arguments to if');
+        } else if (args.length > 3) {
+          throw new Error('Too many arguments to if');
+        }
+        const conditionResult = EVAL(args[0], env);
+        if (![ MAL_NIL, MAL_FALSE ].includes(conditionResult)) {
+          return EVAL(args[1], env);
+        } else if (args.length >= 3) {
+          return EVAL(args[2], env);
+        } else {
+          return MAL_NIL;
+        }
+      case 'fn*':
+        if (args.length < 1) {
+          throw new Error('Parameter declaration missing');
+        } else if (![ MalList, MalVector ].includes(args[0].constructor)) {
+          throw new Error('Parameter declaration def should be a vector');
+        }
+        const binds = args[0].items.map(bind => {
+          if (!(bind instanceof MalSymbol)) {
+            throw new Error(`fn params must be Symbols`);
+          }
+          return bind.name;
+        });
+        const ctx = {
+          env,
+          binds,
+          fnBody: args.slice(1)
+        };
+        return new MalFunction(ctx, (ctx, params) => {
+          const newEnv = new Env(ctx.env, ctx.binds, params);
+          if (ctx.fnBody.length <= 0) {
+            return MAL_NIL;
+          }
+          const evaledArgs = ctx.fnBody.map(arg => EVAL(arg, newEnv));
+          return evaledArgs[evaledArgs.length - 1];
+        });
     }
   }
-
   const [ malFn, ...malArgs ] = evalAst(ast, env).items;
   return malFn.apply(malArgs);
 }
@@ -100,6 +139,8 @@ function PRINT (output) {
 function rep (input) {
   return PRINT(EVAL(READ(input), replEnv));
 }
+
+rep('(def! not (fn* (a) (if a false true)))');
 
 const rl = readline.createInterface({
   input: process.stdin,
