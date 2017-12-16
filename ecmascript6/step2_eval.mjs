@@ -8,7 +8,7 @@ import {
   MalNumber,
   MalVector,
   MalHashMap,
-  MalRawFunction,
+  MalFunction,
   MAL_NIL
 } from './types.mjs';
 
@@ -17,10 +17,10 @@ function READ (input) {
 }
 
 const replEnv = {
-  '+': new MalRawFunction((a, b) => new MalNumber(a.value + b.value)),
-  '-': new MalRawFunction((a, b) => new MalNumber(a.value - b.value)),
-  '*': new MalRawFunction((a, b) => new MalNumber(a.value * b.value)),
-  '/': new MalRawFunction((a, b) => new MalNumber(a.value / b.value))
+  '+': MalFunction.builtin((a, b) => new MalNumber(a.value + b.value)),
+  '-': MalFunction.builtin((a, b) => new MalNumber(a.value - b.value)),
+  '*': MalFunction.builtin((a, b) => new MalNumber(a.value * b.value)),
+  '/': MalFunction.builtin((a, b) => new MalNumber(a.value / b.value))
 };
 
 function evalAst (ast, env) {

@@ -111,12 +111,12 @@ function EVAL (ast, env) {
           }
           return bind.name;
         });
-        return new MalFunction(env, params, fnBody, (env, params, ast, paramValues) => {
+        return new MalFunction(env, params, fnBody, (env, params, fnBody, paramValues) => {
           const newEnv = new Env(env, params, paramValues);
-          if (ast.length <= 0) {
+          if (fnBody.length <= 0) {
             return MAL_NIL;
           }
-          const evaledArgs = ast.map(arg => EVAL(arg, newEnv));
+          const evaledArgs = fnBody.map(arg => EVAL(arg, newEnv));
           return evaledArgs[evaledArgs.length - 1];
         });
     }

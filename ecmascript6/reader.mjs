@@ -129,7 +129,7 @@ function * tokenizer (str) {
     const re = /[\s,]*(~@|[[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s[\]{}('"`,;)]*)/g;
     let match = re.exec(line);
     while (match[1] !== '') {
-      if (match[1] === ';') {
+      if (match[1].startsWith(';')) {
         break;
       }
 

@@ -11,9 +11,13 @@ import {
   MalVector,
   MalHashMap,
   MalFunction,
+  MalString,
   MAL_NIL,
   MAL_FALSE
 } from './types.mjs';
+
+const IS_RAW = process.argv[2] === '--raw';
+const MAL_ARGV = process.argv.slice(IS_RAW ? 3 : 2);
 
 function READ (input) {
   return readString(input);
@@ -21,6 +25,8 @@ function READ (input) {
 
 const replEnv = new Env();
 core.bindTo(replEnv);
+replEnv.setValue('eval', MalFunction.builtin(ast => EVAL(ast, replEnv)));
+replEnv.setValue('*ARGV*', new MalList(MAL_ARGV.slice(1).map(arg => new MalString(arg))));
 
 function evalAst (ast, env) {
   switch (ast.constructor) {
@@ -163,24 +169,30 @@ function rep (input) {
 }
 
 rep('(def! not (fn* (a) (if a false true)))');
+rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: 'user> ',
-  terminal: !process.argv.slice(2).includes('--raw')
-});
+if (MAL_ARGV.length > 0) {
+  const cmd = `(load-file ${printString(new MalString(MAL_ARGV[0]), true)})`;
+  rep(cmd);
+} else {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: 'user> ',
+    terminal: !IS_RAW
+  });
 
-rl.on('line', input => {
-  try {
-    const output = rep(input);
-    if (output) {
-      console.log(output);
+  rl.on('line', input => {
+    try {
+      const output = rep(input);
+      if (output) {
+        console.log(output);
+      }
+    } catch (error) {
+      console.error(error);
     }
-  } catch (error) {
-    console.error(error);
-  }
-  rl.prompt();
-});
+    rl.prompt();
+  });
 
-rl.prompt();
+  rl.prompt();
+}

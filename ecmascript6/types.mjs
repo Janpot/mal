@@ -15,7 +15,7 @@ class MalType {
     throw new Error('Must be overridden');
   }
 
-  toString () {
+  toString (readable = false) {
     return `[${this.constructor.name}]`;
   }
 }
@@ -50,7 +50,7 @@ export class MalList extends MalType {
     return equalsListLike(this, other);
   }
 
-  toString (readable) {
+  toString (readable = false) {
     return `(${this.items.map(item => item.toString(readable)).join(' ')})`;
   }
 }
@@ -70,7 +70,7 @@ export class MalVector extends MalType {
     return equalsListLike(this, other);
   }
 
-  toString (readable) {
+  toString (readable = false) {
     return `[${this.items.map(item => item.toString(readable)).join(' ')}]`;
   }
 }
@@ -100,7 +100,7 @@ export class MalHashMap extends MalType {
     return true;
   }
 
-  toString (readable) {
+  toString (readable = false) {
     const flattenedItems = [].concat(...this.items.entries());
     return `{${flattenedItems.map(item => item.toString(readable)).join(' ')}}`;
   }
@@ -116,7 +116,7 @@ export class MalSymbol extends MalType {
     return this.hasSameType(other) && (this.name === other.name);
   }
 
-  toString () {
+  toString (readable = false) {
     return this.name;
   }
 }
@@ -135,7 +135,7 @@ export class MalNumber extends MalType {
     return this.value - other.value;
   }
 
-  toString () {
+  toString (readable = false) {
     return String(this.value);
   }
 }
@@ -174,49 +174,39 @@ export class MalKeyword extends MalType {
     return this.hasSameType(other) && (this.name === other.name);
   }
 
-  toString () {
+  toString (readable = false) {
     return `:${this.name}`;
   }
 }
 
 export class MalFunction extends MalType {
-  constructor (env, params, fnBody, fn) {
+  static builtin (fn) {
+    return new MalFunction(null, null, null, (env, params, fnBody, args) => fn(...args), false);
+  }
+
+  static tco (env, params, fnBody, apply) {
+    return new MalFunction(env, params, fnBody, apply, true);
+  }
+
+  constructor (env, params, fnBody, apply, canTco = false) {
     super();
-    this._fn = fn;
     this.env = env;
     this.params = params;
     this.fnBody = fnBody;
+    this._apply = apply;
+    this.canTco = canTco;
   }
 
   apply (args) {
-    return this._fn.apply(null, [ this.env, this.params, this.fnBody, args ]);
+    return this._apply(this.env, this.params, this.fnBody, args);
   }
 
   equals (other) {
     return false;
   }
 
-  toString () {
+  toString (readable = false) {
     return '#';
-  }
-}
-
-export class MalRawFunction extends MalFunction {
-  constructor (fn) {
-    super();
-    this._fn = fn;
-  }
-
-  apply (args) {
-    return this._fn.apply(null, args);
-  }
-}
-
-export class MalTcoFunction extends MalFunction {
-  constructor (env, params, fnBody) {
-    super(env, params, fnBody, () => {
-      throw new Error('Must be called through TCO');
-    });
   }
 }
 
@@ -230,8 +220,23 @@ export class MalConstant extends MalType {
     return this === other;
   }
 
-  toString () {
+  toString (readable = false) {
     return this._stringRep;
+  }
+}
+
+export class MalAtom extends MalType {
+  constructor (value) {
+    super();
+    this.ref = value;
+  }
+
+  equals (other) {
+    return this.hasSameType(other) && (this.ref === other.ref);
+  }
+
+  toString (readable = false) {
+    return `(atom ${this.ref.toString(readable)})`;
   }
 }
 
