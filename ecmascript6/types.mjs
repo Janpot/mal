@@ -186,10 +186,6 @@ class MalKeyword extends MalType {
 }
 
 class MalFunction extends MalType {
-  static builtin (fn) {
-    return new MalFunction(null, null, null, (env, params, fnBody, args) => fn(...args));
-  }
-
   constructor (env, params, fnBody, apply) {
     super();
     this.env = env;
@@ -295,7 +291,7 @@ export function createFunction (env, params, fnBody, apply) {
 }
 
 export function createBuiltin (fn) {
-  return MalFunction.builtin(fn);
+  return new MalFunction(null, null, null, (env, params, fnBody, args) => fn(...args));
 }
 
 export function createAtom (value) {
