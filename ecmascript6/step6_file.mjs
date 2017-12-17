@@ -112,7 +112,7 @@ function EVAL (ast, env) {
         case 'if': {
           checkArgsLength('if', args, 2, 3);
           const conditionResult = EVAL(args[0], env);
-          if (![ types.NIL, types.FALSE ].includes(conditionResult)) {
+          if (conditionResult !== types.NIL && conditionResult !== types.FALSE) {
             // TCO
             ast = args[1];
             continue;
@@ -128,11 +128,11 @@ function EVAL (ast, env) {
           checkArgsLength('fn*', args, 1, +Infinity);
           checkArgsTypes('fn*', args, [ 'sequential' ]);
           const [ paramDecl, ...fnBody ] = args;
-          const params = paramDecl.items.map(bind => {
+          const params = types.getItems(paramDecl).map(bind => {
             if (!types.isSymbol(bind)) {
               throw new Error(`fn params must be Symbols`);
             }
-            return bind.name;
+            return types.getSymbolName(bind);
           });
           const fn = types.createFunction(env, params, fnBody, (env, params, fnBody, paramValues) => {
             const newEnv = new Env(env, params, paramValues);
