@@ -42,6 +42,27 @@ export function bindTo (env) {
 
   env.setValue('empty?', MalFunction.builtin(list => toMalBool(list.length <= 0)));
 
+  env.setValue('nth', MalFunction.builtin((list, index) => {
+    if (index < 0 || index >= list.length) {
+      throw new Error(`Index ${index} out of bounds`);
+    }
+    return list.items[index];
+  }));
+
+  env.setValue('first', MalFunction.builtin(list => {
+    if (list === MAL_NIL || list.length <= 0) {
+      return MAL_NIL;
+    }
+    return list.items[0];
+  }));
+
+  env.setValue('rest', MalFunction.builtin(list => {
+    if (list === MAL_NIL) {
+      return new MalList();
+    }
+    return new MalList(list.items.slice(1));
+  }));
+
   env.setValue('count', MalFunction.builtin(list => {
     if (list === MAL_NIL) {
       return new MalNumber(0);

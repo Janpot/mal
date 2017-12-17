@@ -36,7 +36,7 @@ function equalsListLike (a, b) {
 }
 
 export class MalList extends MalType {
-  constructor (items) {
+  constructor (items = []) {
     super();
     this.items = items;
     this._isListLike = true;
@@ -56,7 +56,7 @@ export class MalList extends MalType {
 }
 
 export class MalVector extends MalType {
-  constructor (items) {
+  constructor (items = []) {
     super();
     this.items = items;
     this._isListLike = true;
@@ -76,7 +76,7 @@ export class MalVector extends MalType {
 }
 
 export class MalHashMap extends MalType {
-  constructor (items) {
+  constructor (items = []) {
     super();
     this.items = items;
   }
@@ -181,20 +181,17 @@ export class MalKeyword extends MalType {
 
 export class MalFunction extends MalType {
   static builtin (fn) {
-    return new MalFunction(null, null, null, (env, params, fnBody, args) => fn(...args), false);
+    return new MalFunction(null, null, null, (env, params, fnBody, args) => fn(...args));
   }
 
-  static tco (env, params, fnBody, apply) {
-    return new MalFunction(env, params, fnBody, apply, true);
-  }
-
-  constructor (env, params, fnBody, apply, canTco = false) {
+  constructor (env, params, fnBody, apply) {
     super();
     this.env = env;
     this.params = params;
     this.fnBody = fnBody;
     this._apply = apply;
-    this.canTco = canTco;
+    this.canTco = false;
+    this.isMacro = false;
   }
 
   apply (args) {

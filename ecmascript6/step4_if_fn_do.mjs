@@ -74,13 +74,14 @@ function EVAL (ast, env) {
   const [ func, ...args ] = ast.items;
   if (func instanceof MalSymbol) {
     switch (func.name) {
-      case 'def!':
+      case 'def!': {
         checkArgsLength('def!', args, 2, 2);
         checkArgsTypes('def!', args, [ MalSymbol ]);
         const value = EVAL(args[1], env);
         env.setValue(args[0].name, value);
         return value;
-      case 'let*':
+      }
+      case 'let*': {
         if (!(args[0] instanceof MalList || args[0] instanceof MalVector)) {
           throw new Error('Bad binding form, expected vector');
         } else if (args[0].length % 2 !== 0) {
@@ -95,10 +96,12 @@ function EVAL (ast, env) {
           newEnv.setValue(symbol.name, value);
         }
         return EVAL(args[1], newEnv);
-      case 'do':
+      }
+      case 'do': {
         const evaledArgs = evalAst(new MalList(args), env);
         return evaledArgs.items[evaledArgs.length - 1];
-      case 'if':
+      }
+      case 'if': {
         checkArgsLength('if', args, 2, 3);
         const conditionResult = EVAL(args[0], env);
         if (![ MAL_NIL, MAL_FALSE ].includes(conditionResult)) {
@@ -108,7 +111,8 @@ function EVAL (ast, env) {
         } else {
           return MAL_NIL;
         }
-      case 'fn*':
+      }
+      case 'fn*': {
         checkArgsLength('fn*', args, 1, +Infinity);
         checkArgsTypes('fn*', args, [ [ MalList, MalVector ] ]);
         const [ paramDecl, ...fnBody ] = args;
@@ -126,6 +130,7 @@ function EVAL (ast, env) {
           const evaledArgs = fnBody.map(arg => EVAL(arg, newEnv));
           return evaledArgs[evaledArgs.length - 1];
         });
+      }
     }
   }
   const [ malFn, ...malArgs ] = evalAst(ast, env).items;

@@ -47,6 +47,14 @@ function checkArgsTypes (fnName, args, types = []) {
   }
 }
 
+function lookupSymbol (symbol, env) {
+  const value = env.getValue(symbol.name);
+  if (!value) {
+    throw new Error(`Unable to resolve symbol: ${symbol.name} in this context`);
+  }
+  return value;
+}
+
 function evalAst (ast, env) {
   switch (ast.constructor) {
     case MalList:
@@ -68,6 +76,52 @@ function evalAst (ast, env) {
   }
 }
 
+function isFunctionCall (ast, fnName = null) {
+  return (
+    ast instanceof MalList &&
+    ast.items[0] instanceof MalSymbol &&
+    (!fnName || (ast.items[0].name === fnName))
+  );
+}
+
+function isMacroCall (ast, env) {
+  if (!isFunctionCall(ast)) {
+    return false;
+  }
+  const fnName = ast.items[0].name;
+  const macro = env.getValue(fnName);
+  if (!macro) {
+    return false;
+  }
+  return macro.isMacro;
+}
+
+function macroexpand (ast, env) {
+  while (isMacroCall(ast, env)) {
+    const [ macroFnSymbol, ...macroArgs ] = ast.items;
+    const macro = env.getValue(macroFnSymbol.name);
+    ast = macro.apply(macroArgs);
+  }
+  return ast;
+}
+
+function quasiquote (ast) {
+  if (![ MalList, MalVector ].includes(ast.constructor) || (ast.length <= 0)) {
+    return new MalList([ new MalSymbol('quote'), ast ]);
+  }
+  const [ first, ...rest ] = ast.items;
+  if (isFunctionCall(ast, 'unquote')) {
+    checkArgsLength('unquote', rest, 1, 1);
+    return rest[0];
+  }
+  if (isFunctionCall(first, 'splice-unquote')) {
+    const args = first.items.slice(1);
+    checkArgsLength('unquote', args, 1, 1);
+    return new MalList([ new MalSymbol('concat'), args[0], quasiquote(new MalList(rest)) ]);
+  }
+  return new MalList([ new MalSymbol('cons'), quasiquote(first), quasiquote(new MalList(rest)) ]);
+}
+
 function EVAL (ast, env) {
   while (true) {
     if (!ast) {
@@ -76,6 +130,11 @@ function EVAL (ast, env) {
       return evalAst(ast, env);
     } else if (ast.length <= 0) {
       return ast;
+    }
+
+    ast = macroexpand(ast, env);
+    if (!(ast instanceof MalList)) {
+      return evalAst(ast, env);
     }
 
     const [ func, ...args ] = ast.items;
@@ -87,6 +146,21 @@ function EVAL (ast, env) {
           const value = EVAL(args[1], env);
           env.setValue(args[0].name, value);
           return value;
+        }
+        case 'defmacro!': {
+          checkArgsLength('defmacro!', args, 2, 2);
+          checkArgsTypes('defmacro!', args, [ MalSymbol ]);
+          const value = EVAL(args[1], env);
+          if (!(value instanceof MalFunction)) {
+            throw new Error('defmacro! expects a function declaration as second parameter');
+          }
+          value.isMacro = true;
+          env.setValue(args[0].name, value);
+          return value;
+        }
+        case 'macroexpand': {
+          checkArgsLength('defmacro!', args, 1, 1);
+          return macroexpand(args[0], env);
         }
         case 'let*': {
           if (!(args[0] instanceof MalList || args[0] instanceof MalVector)) {
@@ -151,6 +225,17 @@ function EVAL (ast, env) {
           fn.canTco = true;
           return fn;
         }
+        case 'quote': {
+          checkArgsLength('quote', args, 1, 1);
+          return args[0];
+        }
+        case 'quasiquote': {
+          checkArgsLength('quasiquote', args, 1, 1);
+
+          // TCO
+          ast = quasiquote(args[0]);
+          continue;
+        }
       }
     }
     const [ malFn, ...malArgs ] = evalAst(ast, env).items;
@@ -184,6 +269,8 @@ function rep (input) {
 
 rep('(def! not (fn* (a) (if a false true)))');
 rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+rep('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons \'cond (rest (rest xs)))))))');
+rep('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))');
 
 if (MAL_ARGV.length > 0) {
   const cmd = `(load-file ${printString(new MalString(MAL_ARGV[0]), true)})`;

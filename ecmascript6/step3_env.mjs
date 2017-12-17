@@ -76,13 +76,14 @@ function EVAL (ast, env) {
   const [ func, ...args ] = ast.items;
   if (func instanceof MalSymbol) {
     switch (func.name) {
-      case 'def!':
+      case 'def!': {
         checkArgsLength('def!', args, 2, 2);
         checkArgsTypes('def!', args, [ MalSymbol ]);
         const value = EVAL(args[1], env);
         env.setValue(args[0].name, value);
         return value;
-      case 'let*':
+      }
+      case 'let*': {
         if (!(args[0] instanceof MalList || args[0] instanceof MalVector)) {
           throw new Error('Bad binding form, expected vector');
         } else if (args[0].length % 2 !== 0) {
@@ -97,6 +98,7 @@ function EVAL (ast, env) {
           newEnv.setValue(symbol.name, value);
         }
         return EVAL(args[1], newEnv);
+      }
     }
   }
 

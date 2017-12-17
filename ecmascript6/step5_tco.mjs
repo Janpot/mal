@@ -75,13 +75,14 @@ function EVAL (ast, env) {
     const [ func, ...args ] = ast.items;
     if (func instanceof MalSymbol) {
       switch (func.name) {
-        case 'def!':
+        case 'def!': {
           checkArgsLength('def!', args, 2, 2);
           checkArgsTypes('def!', args, [ MalSymbol ]);
           const value = EVAL(args[1], env);
           env.setValue(args[0].name, value);
           return value;
-        case 'let*':
+        }
+        case 'let*': {
           if (!(args[0] instanceof MalList || args[0] instanceof MalVector)) {
             throw new Error('Bad binding form, expected vector');
           } else if (args[0].length % 2 !== 0) {
@@ -100,13 +101,15 @@ function EVAL (ast, env) {
           env = newEnv;
           ast = args[1];
           continue;
-        case 'do':
+        }
+        case 'do': {
           evalAst(new MalList(args.slice(0, -1)), env);
 
           // TCO
           ast = args[args.length - 1];
           continue;
-        case 'if':
+        }
+        case 'if': {
           checkArgsLength('if', args, 2, 3);
           const conditionResult = EVAL(args[0], env);
           if (![ MAL_NIL, MAL_FALSE ].includes(conditionResult)) {
@@ -120,7 +123,8 @@ function EVAL (ast, env) {
           } else {
             return MAL_NIL;
           }
-        case 'fn*':
+        }
+        case 'fn*': {
           checkArgsLength('fn*', args, 1, +Infinity);
           checkArgsTypes('fn*', args, [ [ MalList, MalVector ] ]);
           const [ paramDecl, ...fnBody ] = args;
@@ -130,7 +134,7 @@ function EVAL (ast, env) {
             }
             return bind.name;
           });
-          return MalFunction.tco(env, params, fnBody, (env, params, fnBody, paramValues) => {
+          const fn = new MalFunction(env, params, fnBody, (env, params, fnBody, paramValues) => {
             const newEnv = new Env(env, params, paramValues);
             if (fnBody.length <= 0) {
               return MAL_NIL;
@@ -138,6 +142,9 @@ function EVAL (ast, env) {
             const evaledArgs = fnBody.map(arg => EVAL(arg, newEnv));
             return evaledArgs[evaledArgs.length - 1];
           });
+          fn.canTco = true;
+          return fn;
+        }
       }
     }
     const [ malFn, ...malArgs ] = evalAst(ast, env).items;
