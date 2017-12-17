@@ -6,20 +6,16 @@ class MalType {
   equals (other) {
     throw new Error('Must be overridden');
   }
-
-  toString (readable = false) {
-    return `[${this.constructor.name}]`;
-  }
 }
 
 function equalsSequential (a, b) {
   if (!isSequential(a) || !isSequential(b)) {
     return false;
   }
-  if (a.length !== b.length) {
+  if (lengthOf(a) !== lengthOf(b)) {
     return false;
   }
-  for (let i = 0; i < a.items.length; i += 1) {
+  for (let i = 0; i < lengthOf(a); i += 1) {
     if (!a.items[i].equals(b.items[i])) {
       return false;
     }
@@ -33,16 +29,8 @@ class MalList extends MalType {
     this.items = items;
   }
 
-  get length () {
-    return this.items.length;
-  }
-
   equals (other) {
     return equalsSequential(this, other);
-  }
-
-  toString (readable = false) {
-    return `(${this.items.map(item => item.toString(readable)).join(' ')})`;
   }
 }
 
@@ -52,16 +40,8 @@ class MalVector extends MalType {
     this.items = items;
   }
 
-  get length () {
-    return this.items.length;
-  }
-
   equals (other) {
     return equalsSequential(this, other);
-  }
-
-  toString (readable = false) {
-    return `[${this.items.map(item => item.toString(readable)).join(' ')}]`;
   }
 }
 
@@ -71,25 +51,16 @@ class MalHashMap extends MalType {
     this.items = items;
   }
 
-  get length () {
-    return this.items.size;
-  }
-
   get (key) {
     const entry = [...this.items.entries()].find(([ existingKey ]) => existingKey.equals(key));
     return entry ? entry[1] : NIL;
-  }
-
-  has (key) {
-    const entry = [...this.items.entries()].find(([ existingKey ]) => existingKey.equals(key));
-    return !!entry;
   }
 
   equals (other) {
     if (!this.hasSameType(other)) {
       return false;
     }
-    if (this.length !== other.length) {
+    if (lengthOf(this) !== lengthOf(other)) {
       return false;
     }
     for (const key of this.items.keys()) {
@@ -98,11 +69,6 @@ class MalHashMap extends MalType {
       }
     }
     return true;
-  }
-
-  toString (readable = false) {
-    const flattenedItems = [].concat(...this.items.entries());
-    return `{${flattenedItems.map(item => item.toString(readable)).join(' ')}}`;
   }
 }
 
@@ -115,10 +81,6 @@ class MalSymbol extends MalType {
   equals (other) {
     return this.hasSameType(other) && (this.name === other.name);
   }
-
-  toString (readable = false) {
-    return this.name;
-  }
 }
 
 class MalNumber extends MalType {
@@ -129,10 +91,6 @@ class MalNumber extends MalType {
 
   equals (other) {
     return this.hasSameType(other) && (this.value === other.value);
-  }
-
-  toString (readable = false) {
-    return String(this.value);
   }
 }
 
@@ -145,19 +103,6 @@ class MalString extends MalType {
   equals (other) {
     return this.hasSameType(other) && (this.value === other.value);
   }
-
-  get _readableValue () {
-    return this.value.replace(/[\\"\n]/g, character => {
-      switch (character) {
-        case '\n': return '\\n';
-        default: return `\\${character}`;
-      }
-    });
-  }
-
-  toString (readable = false) {
-    return readable ? `"${this._readableValue}"` : this.value;
-  }
 }
 
 class MalKeyword extends MalType {
@@ -168,10 +113,6 @@ class MalKeyword extends MalType {
 
   equals (other) {
     return this.hasSameType(other) && (this.name === other.name);
-  }
-
-  toString (readable = false) {
-    return `:${this.name}`;
   }
 }
 
@@ -193,25 +134,6 @@ class MalFunction extends MalType {
   equals (other) {
     return false;
   }
-
-  toString (readable = false) {
-    return '#';
-  }
-}
-
-class MalConstant extends MalType {
-  constructor (stringRep) {
-    super();
-    this._stringRep = stringRep;
-  }
-
-  equals (other) {
-    return this === other;
-  }
-
-  toString (readable = false) {
-    return this._stringRep;
-  }
 }
 
 class MalAtom extends MalType {
@@ -223,17 +145,13 @@ class MalAtom extends MalType {
   equals (other) {
     return this.hasSameType(other) && (this.ref === other.ref);
   }
-
-  toString (readable = false) {
-    return `(atom ${this.ref.toString(readable)})`;
-  }
 }
 
-export const NIL = new MalConstant('nil');
+export const NIL = Symbol('nil');
 
-export const TRUE = new MalConstant('true');
+export const TRUE = Symbol('true');
 
-export const FALSE = new MalConstant('false');
+export const FALSE = Symbol('false');
 
 export class MalException extends Error {
   constructor (innerValue) {
@@ -367,6 +285,9 @@ export function toJsMap (malHashMap) {
 }
 
 export function isEqual (a, b) {
+  if (a === NIL || a === TRUE || a === FALSE) {
+    return a === b;
+  }
   return a.equals(b);
 }
 
@@ -399,4 +320,10 @@ export function deref (atom) {
 
 export function getSymbolName (symbol) {
   return symbol.name;
+}
+
+// keyword helpers
+
+export function getKeywordName (keyword) {
+  return keyword.name;
 }

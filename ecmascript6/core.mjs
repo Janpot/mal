@@ -27,10 +27,11 @@ export function bindTo (env) {
   env.setValue('empty?', types.createBuiltin(list => types.createBool(types.lengthOf(list) <= 0)));
 
   env.setValue('nth', types.createBuiltin((list, index) => {
-    if (index < 0 || index >= types.lengthOf(list)) {
-      throw new Error(`Index ${index} out of bounds`);
+    const indexValue = types.toJsNumber(index);
+    if (indexValue < 0 || indexValue >= types.lengthOf(list)) {
+      throw new Error(`Index ${indexValue} out of bounds`);
     }
-    return types.toJsArray(list)[index];
+    return types.toJsArray(list)[indexValue];
   }));
 
   env.setValue('first', types.createBuiltin(list => {
