@@ -48,9 +48,9 @@ function evalAst (ast, env) {
       .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
-    const value = env.getValue(ast.name);
+    const value = env.getValue(types.getSymbolName(ast));
     if (!value) {
-      throw new Error(`'${ast.name}' not found`);
+      throw new Error(`'${types.getSymbolName(ast)}' not found`);
     }
     return value;
   } else {
@@ -67,7 +67,7 @@ function EVAL (ast, env) {
     return ast;
   }
 
-  const [ func, ...args ] = ast.items;
+  const [ func, ...args ] = types.getItems(ast);
   if (types.isSymbol(func)) {
     switch (types.getSymbolName(func)) {
       case 'def!': {

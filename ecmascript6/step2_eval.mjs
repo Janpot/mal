@@ -24,10 +24,10 @@ function evalAst (ast, env) {
       .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
-    if (env[ast.name]) {
-      return env[ast.name];
+    if (env[types.getSymbolName(ast)]) {
+      return env[types.getSymbolName(ast)];
     }
-    throw new Error(`Unknown symbol "${ast.name}"`);
+    throw new Error(`Unknown symbol "${types.getSymbolName(ast)}"`);
   } else {
     return ast;
   }
