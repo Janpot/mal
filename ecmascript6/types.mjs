@@ -1,6 +1,6 @@
 class MalType {
   constructor () {
-    this._isListLike = false;
+    this._isSequential = false;
   }
 
   get count () {
@@ -20,8 +20,8 @@ class MalType {
   }
 }
 
-function equalsListLike (a, b) {
-  if (!a._isListLike && !b._isListLike) {
+function equalsSequential (a, b) {
+  if (!a._isSequential || !b._isSequential) {
     return false;
   }
   if (a.length !== b.length) {
@@ -39,7 +39,7 @@ export class MalList extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
-    this._isListLike = true;
+    this._isSequential = true;
   }
 
   get length () {
@@ -47,7 +47,7 @@ export class MalList extends MalType {
   }
 
   equals (other) {
-    return equalsListLike(this, other);
+    return equalsSequential(this, other);
   }
 
   toString (readable = false) {
@@ -59,7 +59,7 @@ export class MalVector extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
-    this._isListLike = true;
+    this._isSequential = true;
   }
 
   get length () {
@@ -67,7 +67,7 @@ export class MalVector extends MalType {
   }
 
   equals (other) {
-    return equalsListLike(this, other);
+    return equalsSequential(this, other);
   }
 
   toString (readable = false) {
@@ -76,13 +76,23 @@ export class MalVector extends MalType {
 }
 
 export class MalHashMap extends MalType {
-  constructor (items = []) {
+  constructor (items = new Map()) {
     super();
     this.items = items;
   }
 
   get length () {
     return this.items.size;
+  }
+
+  get (key) {
+    const entry = [...this.items.entries()].find(([ existingKey ]) => existingKey.equals(key));
+    return entry ? entry[1] : MAL_NIL;
+  }
+
+  has (key) {
+    const entry = [...this.items.entries()].find(([ existingKey ]) => existingKey.equals(key));
+    return !!entry;
   }
 
   equals (other) {
@@ -93,7 +103,7 @@ export class MalHashMap extends MalType {
       return false;
     }
     for (const key of this.items.keys()) {
-      if (!this.items.get(key).equals(other.items.get(key))) {
+      if (!this.get(key).equals(other.get(key))) {
         return false;
       }
     }
@@ -242,3 +252,86 @@ export const MAL_NIL = new MalConstant('nil');
 export const MAL_TRUE = new MalConstant('true');
 
 export const MAL_FALSE = new MalConstant('false');
+
+export class MalException extends Error {
+  constructor (innerValue) {
+    super();
+    this.innerValue = innerValue;
+  }
+}
+
+export function createList (items) {
+  return new MalList(items);
+}
+
+export function createVector (items) {
+  return new MalVector(items);
+}
+
+export function createHashMap (items) {
+  return new MalHashMap(items);
+}
+
+export function createSymbol (name) {
+  return new MalSymbol(name);
+}
+
+export function createNumber (value) {
+  return new MalNumber(value);
+}
+
+export function createString (value) {
+  return new MalString(value);
+}
+
+export function createKeyword (name) {
+  return new MalKeyword(name);
+}
+
+export function createFunction (env, params, fnBody, apply) {
+  return new MalFunction(env, params, fnBody, apply);
+}
+
+export function createAtom (value) {
+  return new MalAtom(value);
+}
+
+export function isList (value) {
+  return value instanceof MalList;
+}
+
+export function isVector (value) {
+  return value instanceof MalVector;
+}
+
+export function isSequential (value) {
+  return isList(value) || isVector(value);
+}
+
+export function isHashMap (value) {
+  return value instanceof MalHashMap;
+}
+
+export function isSymbol (value) {
+  return value instanceof MalSymbol;
+}
+
+export function isNumber (value) {
+  return value instanceof MalNumber;
+}
+
+export function isString (value) {
+  return value instanceof MalString;
+}
+
+export function isKeyword (value) {
+  return value instanceof MalKeyword;
+}
+
+export function isFunction (value) {
+  return value instanceof MalFunction;
+}
+
+export function isAtom (value) {
+  return value instanceof MalAtom;
+}

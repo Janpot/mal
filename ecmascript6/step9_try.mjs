@@ -13,6 +13,7 @@ import {
   MalHashMap,
   MalFunction,
   MalString,
+  MalException,
   MAL_NIL,
   MAL_FALSE
 } from './types.mjs';
@@ -39,6 +40,9 @@ function checkArgsLength (fnName, args, lower = -Infinity, upper = +Infinity) {
 
 function checkArgsTypes (fnName, args, types = []) {
   for (let i = 0; i < Math.min(types.length, args.length); i += 1) {
+    if (!types[i]) {
+      continue;
+    }
     const oneOfType = Array.isArray(types[i]) ? types[i] : [ types[i] ];
     if (!oneOfType.includes(args[i].constructor)) {
       const typeStr = oneOfType.map(type => type.name).join(' or a ');
@@ -56,7 +60,7 @@ function evalAst (ast, env) {
     case MalSymbol:
       const value = env.getValue(ast.name);
       if (!value) {
-        throw new Error(`Unable to resolve symbol: ${ast.name} in this context`);
+        throw new Error(`'${ast.name}' not found`);
       }
       return value;
     case MalHashMap:
@@ -112,6 +116,14 @@ function quasiquote (ast) {
     return new MalList([ new MalSymbol('concat'), args[0], quasiquote(new MalList(rest)) ]);
   }
   return new MalList([ new MalSymbol('cons'), quasiquote(first), quasiquote(new MalList(rest)) ]);
+}
+
+function extractMalCatchValue (error) {
+  if (error instanceof MalException) {
+    return error.innerValue;
+  } else {
+    return new MalString(error.message || 'Unknown error');
+  }
 }
 
 function EVAL (ast, env) {
@@ -227,6 +239,23 @@ function EVAL (ast, env) {
           // TCO
           ast = quasiquote(args[0]);
           continue;
+        }
+        case 'try*': {
+          checkArgsLength('try*', args, 2, 2);
+          if (!isFunctionCall(args[1], 'catch*')) {
+            throw new Error('a catch call was expected');
+          }
+          const catchAst = args[1];
+          const catchArgs = catchAst.items.slice(1);
+          checkArgsLength('catch*', catchArgs, 2, 2);
+          checkArgsTypes('catch*', catchArgs, [ MalSymbol ]);
+          try {
+            return EVAL(args[0], env);
+          } catch (error) {
+            const malException = extractMalCatchValue(error);
+            const catchEnv = new Env(env, [ catchArgs[0].name ], [ malException ]);
+            return EVAL(catchArgs[1], catchEnv);
+          }
         }
       }
     }
