@@ -44,11 +44,11 @@ function checkArgsTypes (fnName, args, types = []) {
 
 function evalAst (ast, env) {
   if (types.isList(ast)) {
-    return types.createList(types.getItems(ast).map(item => EVAL(item, env)));
+    return types.createList(types.toJsArray(ast).map(item => EVAL(item, env)));
   } else if (types.isVector(ast)) {
-    return types.createVector(types.getItems(ast).map(item => EVAL(item, env)));
+    return types.createVector(types.toJsArray(ast).map(item => EVAL(item, env)));
   } else if (types.isHashMap(ast)) {
-    const evaluatedEntries = Array.from(types.getItems(ast).entries())
+    const evaluatedEntries = Array.from(types.toJsMap(ast).entries())
       .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
@@ -72,7 +72,7 @@ function EVAL (ast, env) {
       return ast;
     }
 
-    const [ func, ...args ] = types.getItems(ast);
+    const [ func, ...args ] = types.toJsArray(ast);
     if (types.isSymbol(func)) {
       switch (types.getSymbolName(func)) {
         case 'def!': {
@@ -89,7 +89,7 @@ function EVAL (ast, env) {
             throw new Error('let! requires an even number of forms in binding vector');
           }
           const newEnv = new Env(env);
-          for (const [ symbol, expression ] of pairwise(types.getItems(args[0]))) {
+          for (const [ symbol, expression ] of pairwise(types.toJsArray(args[0]))) {
             if (!types.isSymbol(symbol)) {
               throw new Error('Bad binding form, expected symbol');
             }
@@ -128,7 +128,7 @@ function EVAL (ast, env) {
           checkArgsLength('fn*', args, 1, +Infinity);
           checkArgsTypes('fn*', args, [ 'sequential' ]);
           const [ paramDecl, ...fnBody ] = args;
-          const params = types.getItems(paramDecl).map(bind => {
+          const params = types.toJsArray(paramDecl).map(bind => {
             if (!types.isSymbol(bind)) {
               throw new Error(`fn params must be Symbols`);
             }
@@ -149,7 +149,7 @@ function EVAL (ast, env) {
     }
 
     const evaledList = evalAst(ast, env);
-    const [ malFn, ...malArgs ] = types.getItems(evaledList);
+    const [ malFn, ...malArgs ] = types.toJsArray(evaledList);
 
     if (malFn.canTco) {
       const newEnv = new Env(malFn.env, malFn.params, malArgs);

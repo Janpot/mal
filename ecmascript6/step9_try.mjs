@@ -44,11 +44,11 @@ function checkArgsTypes (fnName, args, types = []) {
 
 function evalAst (ast, env) {
   if (types.isList(ast)) {
-    return types.createList(types.getItems(ast).map(item => EVAL(item, env)));
+    return types.createList(types.toJsArray(ast).map(item => EVAL(item, env)));
   } else if (types.isVector(ast)) {
-    return types.createVector(types.getItems(ast).map(item => EVAL(item, env)));
+    return types.createVector(types.toJsArray(ast).map(item => EVAL(item, env)));
   } else if (types.isHashMap(ast)) {
-    const evaluatedEntries = Array.from(types.getItems(ast).entries())
+    const evaluatedEntries = Array.from(types.toJsMap(ast).entries())
       .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
@@ -66,7 +66,7 @@ function isFunctionCall (ast, fnName = null) {
   if (!types.isList(ast)) {
     return false;
   }
-  const operator = types.getItems(ast)[0];
+  const operator = types.toJsArray(ast)[0];
   if (!types.isSymbol(operator)) {
     return false;
   }
@@ -80,7 +80,7 @@ function isMacroCall (ast, env) {
   if (!isFunctionCall(ast)) {
     return false;
   }
-  const operator = types.getItems(ast)[0];
+  const operator = types.toJsArray(ast)[0];
   const macro = env.getValue(types.getSymbolName(operator));
   if (!macro) {
     return false;
@@ -90,7 +90,7 @@ function isMacroCall (ast, env) {
 
 function macroexpand (ast, env) {
   while (isMacroCall(ast, env)) {
-    const [ operator, ...operands ] = types.getItems(ast);
+    const [ operator, ...operands ] = types.toJsArray(ast);
     const macro = env.getValue(types.getSymbolName(operator));
     ast = macro.apply(operands);
   }
@@ -101,13 +101,13 @@ function quasiquote (ast) {
   if (!types.isSequential(ast) || (types.lengthOf(ast) <= 0)) {
     return types.createList([ types.createSymbol('quote'), ast ]);
   }
-  const [ first, ...rest ] = types.getItems(ast);
+  const [ first, ...rest ] = types.toJsArray(ast);
   if (isFunctionCall(ast, 'unquote')) {
     checkArgsLength('unquote', rest, 1, 1);
     return rest[0];
   }
   if (isFunctionCall(first, 'splice-unquote')) {
-    const args = types.getItems(first).slice(1);
+    const args = types.toJsArray(first).slice(1);
     checkArgsLength('unquote', args, 1, 1);
     return types.createList([ types.createSymbol('concat'), args[0], quasiquote(types.createList(rest)) ]);
   }
@@ -137,7 +137,7 @@ function EVAL (ast, env) {
       return evalAst(ast, env);
     }
 
-    const [ func, ...args ] = types.getItems(ast);
+    const [ func, ...args ] = types.toJsArray(ast);
     if (types.isSymbol(func)) {
       switch (types.getSymbolName(func)) {
         case 'def!': {
@@ -154,7 +154,7 @@ function EVAL (ast, env) {
             throw new Error('let! requires an even number of forms in binding vector');
           }
           const newEnv = new Env(env);
-          for (const [ symbol, expression ] of pairwise(types.getItems(args[0]))) {
+          for (const [ symbol, expression ] of pairwise(types.toJsArray(args[0]))) {
             if (!types.isSymbol(symbol)) {
               throw new Error('Bad binding form, expected symbol');
             }
@@ -208,7 +208,7 @@ function EVAL (ast, env) {
           checkArgsLength('fn*', args, 1, +Infinity);
           checkArgsTypes('fn*', args, [ 'sequential' ]);
           const [ paramDecl, ...fnBody ] = args;
-          const params = types.getItems(paramDecl).map(bind => {
+          const params = types.toJsArray(paramDecl).map(bind => {
             if (!types.isSymbol(bind)) {
               throw new Error(`fn params must be Symbols`);
             }
@@ -242,7 +242,7 @@ function EVAL (ast, env) {
             throw new Error('a catch call was expected');
           }
           const catchAst = args[1];
-          const catchArgs = types.getItems(catchAst).slice(1);
+          const catchArgs = types.toJsArray(catchAst).slice(1);
           checkArgsLength('catch*', catchArgs, 2, 2);
           checkArgsTypes('catch*', catchArgs, [ 'symbol' ]);
           try {
@@ -258,7 +258,7 @@ function EVAL (ast, env) {
     }
 
     const evaledList = evalAst(ast, env);
-    const [ malFn, ...malArgs ] = types.getItems(evaledList);
+    const [ malFn, ...malArgs ] = types.toJsArray(evaledList);
 
     if (malFn.canTco) {
       const newEnv = new Env(malFn.env, malFn.params, malArgs);

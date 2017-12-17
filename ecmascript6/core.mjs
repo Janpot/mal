@@ -30,21 +30,21 @@ export function bindTo (env) {
     if (index < 0 || index >= types.lengthOf(list)) {
       throw new Error(`Index ${index} out of bounds`);
     }
-    return types.getItems(list)[index];
+    return types.toJsArray(list)[index];
   }));
 
   env.setValue('first', types.createBuiltin(list => {
     if (list === types.NIL || types.lengthOf(list) <= 0) {
       return types.NIL;
     }
-    return types.getItems(list)[0];
+    return types.toJsArray(list)[0];
   }));
 
   env.setValue('rest', types.createBuiltin(list => {
     if (list === types.NIL) {
       return types.createList();
     }
-    return types.createList(types.getItems(list).slice(1));
+    return types.createList(types.toJsArray(list).slice(1));
   }));
 
   env.setValue('count', types.createBuiltin(list => {
@@ -54,10 +54,10 @@ export function bindTo (env) {
     return types.createNumber(types.lengthOf(list));
   }));
 
-  env.setValue('cons', types.createBuiltin((value, list) => types.createList([ value, ...types.getItems(list) ])));
+  env.setValue('cons', types.createBuiltin((value, list) => types.createList([ value, ...types.toJsArray(list) ])));
 
   env.setValue('concat', types.createBuiltin((...lists) => {
-    const flattenedItems = [].concat(...lists.map(list => types.getItems(list)));
+    const flattenedItems = [].concat(...lists.map(list => types.toJsArray(list)));
     return types.createList(flattenedItems);
   }));
 
@@ -104,23 +104,23 @@ export function bindTo (env) {
   env.setValue('apply', types.createBuiltin((fn, ...args) => {
     const firstArgs = args.slice(0, -1);
     const lastArg = args[args.length - 1];
-    const applyArgs = firstArgs.concat(types.getItems(lastArg));
+    const applyArgs = firstArgs.concat(types.toJsArray(lastArg));
     return fn.apply(applyArgs);
   }));
 
   env.setValue('map', types.createBuiltin((fn, list) => {
-    return types.createList(types.getItems(list).map(item => fn.apply([ item ])));
+    return types.createList(types.toJsArray(list).map(item => fn.apply([ item ])));
   }));
 
   env.setValue('assoc', types.createBuiltin((hashMap, ...newItems) => {
     return types.createHashMap(new Map([
       ...pairwise(newItems),
-      ...types.getItems(hashMap).entries()
+      ...types.toJsMap(hashMap).entries()
     ]));
   }));
 
   env.setValue('dissoc', types.createBuiltin((hashMap, ...keysToRemove) => {
-    const entries = [...types.getItems(hashMap).entries()];
+    const entries = [...types.toJsMap(hashMap).entries()];
     const newEntries = entries.filter(([ key ]) => !keysToRemove.some(keyToRemove => types.isEqual(key, keyToRemove)));
     return types.createHashMap(new Map([...newEntries]));
   }));
@@ -129,7 +129,7 @@ export function bindTo (env) {
     if (hashMap === types.NIL) {
       return null;
     } else if (types.isHashMap(hashMap)) {
-      const entries = [...types.getItems(hashMap).entries()];
+      const entries = [...types.toJsMap(hashMap).entries()];
       const entry = entries.find(([ key ]) => types.isEqual(key, keyToFind));
       return entry ? entry[1] : null;
     } else {
@@ -139,9 +139,9 @@ export function bindTo (env) {
 
   env.setValue('get', types.createBuiltin((hashMap, key) => findValue(hashMap, key) || types.NIL));
 
-  env.setValue('keys', types.createBuiltin(hashMap => types.createList([...types.getItems(hashMap).keys()])));
+  env.setValue('keys', types.createBuiltin(hashMap => types.createList([...types.toJsMap(hashMap).keys()])));
 
-  env.setValue('vals', types.createBuiltin(hashMap => types.createList([...types.getItems(hashMap).values()])));
+  env.setValue('vals', types.createBuiltin(hashMap => types.createList([...types.toJsMap(hashMap).values()])));
 
   env.setValue('list', types.createBuiltin((...items) => types.createList(items)));
 

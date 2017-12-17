@@ -362,6 +362,24 @@ export function toJsString (malString) {
   }
 }
 
+export function toJsArray (malSequence) {
+  if (isList(malSequence)) {
+    return malSequence.items;
+  } else if (isVector(malSequence)) {
+    return malSequence.items;
+  } else {
+    throw new Error('Can\'t get items from a non-collection');
+  }
+}
+
+export function toJsMap (malHashMap) {
+  if (isHashMap(malHashMap)) {
+    return malHashMap.items;
+  } else {
+    throw new Error('Can\'t get items from a non-collection');
+  }
+}
+
 export function isEqual (a, b) {
   return a.equals(b);
 }
@@ -377,18 +395,6 @@ export function lengthOf (malCollection) {
     return malCollection.items.size;
   } else {
     throw new Error('Can\'t get length of a non-collection');
-  }
-}
-
-export function getItems (malCollection) {
-  if (isList(malCollection)) {
-    return malCollection.items;
-  } else if (isVector(malCollection)) {
-    return malCollection.items;
-  } else if (isHashMap(malCollection)) {
-    return malCollection.items;
-  } else {
-    throw new Error('Can\'t get items from a non-collection');
   }
 }
 
