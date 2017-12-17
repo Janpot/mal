@@ -63,11 +63,17 @@ function evalAst (ast, env) {
 }
 
 function isFunctionCall (ast, fnName = null) {
-  return (
-    types.isList(ast) &&
-    types.isSymbol(ast.items[0]) &&
-    (!fnName || (ast.items[0].name === fnName))
-  );
+  if (!types.isList(ast)) {
+    return false;
+  }
+  const rator = types.getItems(ast)[0];
+  if (!types.isSymbol(rator)) {
+    return false;
+  }
+  if (fnName !== null) {
+    return types.getSymbolName(rator) === fnName;
+  }
+  return true;
 }
 
 function isMacroCall (ast, env) {
@@ -92,16 +98,16 @@ function macroexpand (ast, env) {
 }
 
 function quasiquote (ast) {
-  if (!types.isSequential(ast) || (ast.length <= 0)) {
+  if (!types.isSequential(ast) || (types.lengthOf(ast) <= 0)) {
     return types.createList([ types.createSymbol('quote'), ast ]);
   }
-  const [ first, ...rest ] = ast.items;
+  const [ first, ...rest ] = types.getItems(ast);
   if (isFunctionCall(ast, 'unquote')) {
     checkArgsLength('unquote', rest, 1, 1);
     return rest[0];
   }
   if (isFunctionCall(first, 'splice-unquote')) {
-    const args = first.items.slice(1);
+    const args = types.getItems(first).slice(1);
     checkArgsLength('unquote', args, 1, 1);
     return types.createList([ types.createSymbol('concat'), args[0], quasiquote(types.createList(rest)) ]);
   }
@@ -123,7 +129,7 @@ function EVAL (ast, env) {
       return evalAst(ast, env);
     }
 
-    const [ func, ...args ] = ast.items;
+    const [ func, ...args ] = types.getItems(ast);
     if (types.isSymbol(func)) {
       switch (types.getSymbolName(func)) {
         case 'def!': {
