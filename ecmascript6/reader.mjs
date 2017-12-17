@@ -1,15 +1,4 @@
-import {
-  MalList,
-  MalSymbol,
-  MalNumber,
-  MalVector,
-  MalString,
-  MalHashMap,
-  MalKeyword,
-  MAL_NIL,
-  MAL_TRUE,
-  MAL_FALSE
-} from './types.mjs';
+import * as types from './types.mjs';
 import { pairwise } from './iterTools.mjs';
 
 const EOF = null;
@@ -38,13 +27,13 @@ class Reader {
 function readAtom (reader) {
   const token = reader.next();
   if (token === 'nil') {
-    return MAL_NIL;
+    return types.MAL_NIL;
   } else if (token === 'true') {
-    return MAL_TRUE;
+    return types.MAL_TRUE;
   } else if (token === 'false') {
-    return MAL_FALSE;
+    return types.MAL_FALSE;
   } else if (!isNaN(Number(token))) {
-    return new MalNumber(Number(token));
+    return types.createNumber(Number(token));
   } else if (token.startsWith('"')) {
     if (!token.endsWith('"')) {
       throw new Error('EOF while reading string');
@@ -57,25 +46,25 @@ function readAtom (reader) {
           default: return character;
         }
       });
-    return new MalString(stringValue);
+    return types.createString(stringValue);
   } else if (token.startsWith(':')) {
-    return new MalKeyword(token.slice(1));
+    return types.createKeyword(token.slice(1));
   } else {
-    return new MalSymbol(token);
+    return types.createSymbol(token);
   }
 }
 
 function readWrappingReaderMacro (reader, name) {
   reader.next();
   const object = readForm(reader);
-  return new MalList([new MalSymbol(name), object]);
+  return types.createList([ types.createSymbol(name), object ]);
 }
 
 function readWithMetaReaderMacro (reader) {
   reader.next();
   const metadata = readForm(reader);
   const object = readForm(reader);
-  return new MalList([new MalSymbol('with-meta'), object, metadata]);
+  return types.createList([ types.createSymbol('with-meta'), object, metadata ]);
 }
 
 function readListContent (reader, closingToken) {
@@ -92,11 +81,11 @@ function readListContent (reader, closingToken) {
 }
 
 function readList (reader) {
-  return new MalList(readListContent(reader, ')'));
+  return types.createList(readListContent(reader, ')'));
 }
 
 function readVector (reader) {
-  return new MalVector(readListContent(reader, ']'));
+  return types.createVector(readListContent(reader, ']'));
 }
 
 function readHashMap (reader) {
@@ -104,7 +93,7 @@ function readHashMap (reader) {
   if (items.length % 2 !== 0) {
     throw new Error('Map literal must contain an even number of forms');
   }
-  return new MalHashMap(new Map(pairwise(items)));
+  return types.createHashMap(new Map(pairwise(items)));
 }
 
 function readForm (reader) {
