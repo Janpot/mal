@@ -28,27 +28,27 @@ export function bindTo (env) {
 
   env.setValue('>=', types.createBuiltin((a, b) => toMalBool(a.compareTo(b) >= 0)));
 
-  env.setValue('empty?', types.createBuiltin(list => toMalBool(list.length <= 0)));
+  env.setValue('empty?', types.createBuiltin(list => toMalBool(types.lengthOf(list) <= 0)));
 
   env.setValue('nth', types.createBuiltin((list, index) => {
-    if (index < 0 || index >= list.length) {
+    if (index < 0 || index >= types.lengthOf(list)) {
       throw new Error(`Index ${index} out of bounds`);
     }
-    return list.items[index];
+    return types.getItems(list)[index];
   }));
 
   env.setValue('first', types.createBuiltin(list => {
-    if (list === types.NIL || list.length <= 0) {
+    if (list === types.NIL || types.lengthOf(list) <= 0) {
       return types.NIL;
     }
-    return list.items[0];
+    return types.getItems(list)[0];
   }));
 
   env.setValue('rest', types.createBuiltin(list => {
     if (list === types.NIL) {
       return types.createList();
     }
-    return types.createList(list.items.slice(1));
+    return types.createList(types.getItems(list).slice(1));
   }));
 
   env.setValue('count', types.createBuiltin(list => {
@@ -56,14 +56,17 @@ export function bindTo (env) {
       return types.createNumber(0);
     }
     if ('length' in list) {
-      return types.createNumber(list.length);
+      return types.createNumber(types.lengthOf(list));
     }
     throw new Error(`count not supported on this type: ${list.constructor.name}`);
   }));
 
-  env.setValue('cons', types.createBuiltin((value, list) => types.createList([ value, ...list.items ])));
+  env.setValue('cons', types.createBuiltin((value, list) => types.createList([ value, ...types.getItems(list) ])));
 
-  env.setValue('concat', types.createBuiltin((...lists) => types.createList([].concat(...lists.map(list => list.items)))));
+  env.setValue('concat', types.createBuiltin((...lists) => {
+    const flattenedItems = [].concat(...lists.map(list => types.getItems(list)));
+    return types.createList(flattenedItems);
+  }));
 
   env.setValue('pr-str', types.createBuiltin((...args) => {
     return types.createString(args.map(arg => printString(arg, true)).join(' '));
@@ -110,24 +113,26 @@ export function bindTo (env) {
   }));
 
   env.setValue('apply', types.createBuiltin((fn, ...args) => {
-    const applyArgs = args.slice(0, -1).concat(args[args.length - 1].items);
+    const firstArgs = args.slice(0, -1);
+    const lastArg = args[args.length - 1];
+    const applyArgs = firstArgs.concat(types.getItems(lastArg));
     return fn.apply(applyArgs);
   }));
 
   env.setValue('map', types.createBuiltin((fn, list) => {
-    return types.createList(list.items.map(item => fn.apply([ item ])));
+    return types.createList(types.getItems(list).map(item => fn.apply([ item ])));
   }));
 
   env.setValue('assoc', types.createBuiltin((hashMap, ...newItems) => {
     return types.createHashMap(new Map([
       ...pairwise(newItems),
-      ...hashMap.items.entries()
+      ...types.getItems(hashMap).entries()
     ]));
   }));
 
   env.setValue('dissoc', types.createBuiltin((hashMap, ...keys) => {
     return types.createHashMap(new Map([
-      ...[...hashMap.items.entries()].filter(([ key ]) => !keys.some(toDissoc => toDissoc.equals(key)))
+      ...[...types.getItems(hashMap).entries()].filter(([ key ]) => !keys.some(toDissoc => toDissoc.equals(key)))
     ]));
   }));
 
@@ -138,9 +143,9 @@ export function bindTo (env) {
     return hashMap.get(key);
   }));
 
-  env.setValue('keys', types.createBuiltin(hashMap => types.createList([...hashMap.items.keys()])));
+  env.setValue('keys', types.createBuiltin(hashMap => types.createList([...types.getItems(hashMap).keys()])));
 
-  env.setValue('vals', types.createBuiltin(hashMap => types.createList([...hashMap.items.values()])));
+  env.setValue('vals', types.createBuiltin(hashMap => types.createList([...types.getItems(hashMap).values()])));
 
   env.setValue('list', types.createBuiltin((...items) => types.createList(items)));
 

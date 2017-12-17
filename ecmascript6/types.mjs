@@ -260,6 +260,8 @@ export class MalException extends Error {
   }
 }
 
+// type creation
+
 export function createList (items) {
   return new MalList(items);
 }
@@ -300,6 +302,8 @@ export function createAtom (value) {
   return new MalAtom(value);
 }
 
+// type identification
+
 export function isList (value) {
   return value instanceof MalList;
 }
@@ -338,4 +342,30 @@ export function isFunction (value) {
 
 export function isAtom (value) {
   return value instanceof MalAtom;
+}
+
+// collection helpers
+
+export function lengthOf (collection) {
+  if (isList(collection)) {
+    return collection.items.length;
+  } else if (isVector(collection)) {
+    return collection.items.length;
+  } else if (isHashMap(collection)) {
+    return collection.items.size;
+  } else {
+    throw new Error('Can\'t get length of a non-collection');
+  }
+}
+
+export function getItems (collection) {
+  if (isList(collection)) {
+    return collection.items;
+  } else if (isVector(collection)) {
+    return collection.items;
+  } else if (isHashMap(collection)) {
+    return collection.items;
+  } else {
+    throw new Error('Can\'t get items from a non-collection');
+  }
 }

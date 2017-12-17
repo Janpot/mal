@@ -40,11 +40,11 @@ function checkArgsTypes (fnName, args, types = []) {
 
 function evalAst (ast, env) {
   if (types.isList(ast)) {
-    return types.createList(ast.items.map(item => EVAL(item, env)));
+    return types.createList(types.getItems(ast).map(item => EVAL(item, env)));
   } else if (types.isVector(ast)) {
-    return types.createVector(ast.items.map(item => EVAL(item, env)));
+    return types.createVector(types.getItems(ast).map(item => EVAL(item, env)));
   } else if (types.isHashMap(ast)) {
-    const evaluatedEntries = Array.from(ast.items.entries())
+    const evaluatedEntries = Array.from(types.getItems(ast).entries())
       .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
@@ -63,7 +63,7 @@ function EVAL (ast, env) {
     return types.NIL;
   } else if (!types.isList(ast)) {
     return evalAst(ast, env);
-  } else if (ast.length <= 0) {
+  } else if (types.lengthOf(ast) <= 0) {
     return ast;
   }
 
@@ -96,7 +96,8 @@ function EVAL (ast, env) {
     }
   }
 
-  const [ malFn, ...malArgs ] = evalAst(ast, env).items;
+  const evaledList = evalAst(ast, env);
+  const [ malFn, ...malArgs ] = types.getItems(evaledList);
   return malFn.apply(malArgs);
 }
 
