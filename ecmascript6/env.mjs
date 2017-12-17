@@ -1,4 +1,4 @@
-import { MalList } from './types.mjs';
+import * as types from './types.mjs';
 
 export class Env {
   constructor (outer = null, binds = [], exprs = []) {
@@ -6,7 +6,7 @@ export class Env {
     this._values = new Map();
     for (let i = 0; i < binds.length; i += 1) {
       if (binds[i] === '&') {
-        this._values.set(binds[i + 1], new MalList(exprs.slice(i)));
+        this._values.set(binds[i + 1], types.createList(exprs.slice(i)));
         break;
       } else {
         this._values.set(binds[i], exprs[i]);

@@ -27,11 +27,11 @@ class Reader {
 function readAtom (reader) {
   const token = reader.next();
   if (token === 'nil') {
-    return types.MAL_NIL;
+    return types.NIL;
   } else if (token === 'true') {
-    return types.MAL_TRUE;
+    return types.TRUE;
   } else if (token === 'false') {
-    return types.MAL_FALSE;
+    return types.FALSE;
   } else if (!isNaN(Number(token))) {
     return types.createNumber(Number(token));
   } else if (token.startsWith('"')) {

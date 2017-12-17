@@ -35,7 +35,7 @@ function equalsSequential (a, b) {
   return true;
 }
 
-export class MalList extends MalType {
+class MalList extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
@@ -55,7 +55,7 @@ export class MalList extends MalType {
   }
 }
 
-export class MalVector extends MalType {
+class MalVector extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
@@ -75,7 +75,7 @@ export class MalVector extends MalType {
   }
 }
 
-export class MalHashMap extends MalType {
+class MalHashMap extends MalType {
   constructor (items = new Map()) {
     super();
     this.items = items;
@@ -87,7 +87,7 @@ export class MalHashMap extends MalType {
 
   get (key) {
     const entry = [...this.items.entries()].find(([ existingKey ]) => existingKey.equals(key));
-    return entry ? entry[1] : MAL_NIL;
+    return entry ? entry[1] : NIL;
   }
 
   has (key) {
@@ -116,7 +116,7 @@ export class MalHashMap extends MalType {
   }
 }
 
-export class MalSymbol extends MalType {
+class MalSymbol extends MalType {
   constructor (name) {
     super();
     this.name = name;
@@ -131,7 +131,7 @@ export class MalSymbol extends MalType {
   }
 }
 
-export class MalNumber extends MalType {
+class MalNumber extends MalType {
   constructor (value) {
     super();
     this.value = value;
@@ -150,7 +150,7 @@ export class MalNumber extends MalType {
   }
 }
 
-export class MalString extends MalType {
+class MalString extends MalType {
   constructor (value) {
     super();
     this.value = value;
@@ -174,7 +174,7 @@ export class MalString extends MalType {
   }
 }
 
-export class MalKeyword extends MalType {
+class MalKeyword extends MalType {
   constructor (name) {
     super();
     this.name = name;
@@ -189,7 +189,7 @@ export class MalKeyword extends MalType {
   }
 }
 
-export class MalFunction extends MalType {
+class MalFunction extends MalType {
   static builtin (fn) {
     return new MalFunction(null, null, null, (env, params, fnBody, args) => fn(...args));
   }
@@ -217,7 +217,7 @@ export class MalFunction extends MalType {
   }
 }
 
-export class MalConstant extends MalType {
+class MalConstant extends MalType {
   constructor (stringRep) {
     super();
     this._stringRep = stringRep;
@@ -232,7 +232,7 @@ export class MalConstant extends MalType {
   }
 }
 
-export class MalAtom extends MalType {
+class MalAtom extends MalType {
   constructor (value) {
     super();
     this.ref = value;
@@ -247,11 +247,11 @@ export class MalAtom extends MalType {
   }
 }
 
-export const MAL_NIL = new MalConstant('nil');
+export const NIL = new MalConstant('nil');
 
-export const MAL_TRUE = new MalConstant('true');
+export const TRUE = new MalConstant('true');
 
-export const MAL_FALSE = new MalConstant('false');
+export const FALSE = new MalConstant('false');
 
 export class MalException extends Error {
   constructor (innerValue) {
@@ -290,6 +290,10 @@ export function createKeyword (name) {
 
 export function createFunction (env, params, fnBody, apply) {
   return new MalFunction(env, params, fnBody, apply);
+}
+
+export function createBuiltin (fn) {
+  return MalFunction.builtin(fn);
 }
 
 export function createAtom (value) {

@@ -1,52 +1,42 @@
 import readline from 'readline';
 import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
-
-import {
-  MalList,
-  MalSymbol,
-  MalNumber,
-  MalVector,
-  MalHashMap,
-  MalFunction,
-  MAL_NIL
-} from './types.mjs';
+import * as types from './types.mjs';
 
 function READ (input) {
   return readString(input);
 }
 
 const replEnv = {
-  '+': MalFunction.builtin((a, b) => new MalNumber(a.value + b.value)),
-  '-': MalFunction.builtin((a, b) => new MalNumber(a.value - b.value)),
-  '*': MalFunction.builtin((a, b) => new MalNumber(a.value * b.value)),
-  '/': MalFunction.builtin((a, b) => new MalNumber(a.value / b.value))
+  '+': types.createBuiltin((a, b) => types.createNumber(a.value + b.value)),
+  '-': types.createBuiltin((a, b) => types.createNumber(a.value - b.value)),
+  '*': types.createBuiltin((a, b) => types.createNumber(a.value * b.value)),
+  '/': types.createBuiltin((a, b) => types.createNumber(a.value / b.value))
 };
 
 function evalAst (ast, env) {
-  switch (ast.constructor) {
-    case MalList:
-      return new MalList(ast.items.map(item => EVAL(item, env)));
-    case MalVector:
-      return new MalVector(ast.items.map(item => EVAL(item, env)));
-    case MalSymbol:
-      if (env[ast.name]) {
-        return env[ast.name];
-      }
-      throw new Error(`Unknown symbol "${ast.name}"`);
-    case MalHashMap:
-      const evaluatedEntries = Array.from(ast.items.entries())
-        .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
-      return new MalHashMap(new Map(evaluatedEntries));
-    default:
-      return ast;
+  if (types.isList(ast)) {
+    return types.createList(ast.items.map(item => EVAL(item, env)));
+  } else if (types.isVector(ast)) {
+    return types.createVector(ast.items.map(item => EVAL(item, env)));
+  } else if (types.isHashMap(ast)) {
+    const evaluatedEntries = Array.from(ast.items.entries())
+      .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
+    return types.createHashMap(new Map(evaluatedEntries));
+  } else if (types.isSymbol(ast)) {
+    if (env[ast.name]) {
+      return env[ast.name];
+    }
+    throw new Error(`Unknown symbol "${ast.name}"`);
+  } else {
+    return ast;
   }
 }
 
 function EVAL (ast, env) {
   if (!ast) {
-    return MAL_NIL;
-  } else if (!(ast instanceof MalList)) {
+    return types.NIL;
+  } else if (!types.isList(ast)) {
     return evalAst(ast, env);
   } else if (ast.length <= 0) {
     return ast;
