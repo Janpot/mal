@@ -5,30 +5,31 @@ import path from 'path';
 import { pairwise } from './iterTools.mjs';
 import * as types from './types.mjs';
 
-function toMalBool (value) {
-  return value ? types.TRUE : types.FALSE;
-}
-
 export function bindTo (env) {
-  env.setValue('+', types.createBuiltin((a, b) => types.createNumber(a.value + b.value)));
+  function equals (a, b) {
+    // TO DO: rewrite this without boxed types
+    return a.equals(b);
+  }
 
-  env.setValue('-', types.createBuiltin((a, b) => types.createNumber(a.value - b.value)));
+  env.setValue('+', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) + types.toJsNumber(b))));
 
-  env.setValue('*', types.createBuiltin((a, b) => types.createNumber(a.value * b.value)));
+  env.setValue('-', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) - types.toJsNumber(b))));
 
-  env.setValue('/', types.createBuiltin((a, b) => types.createNumber(a.value / b.value)));
+  env.setValue('*', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) * types.toJsNumber(b))));
 
-  env.setValue('=', types.createBuiltin((a, b) => toMalBool(a.equals(b))));
+  env.setValue('/', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) / types.toJsNumber(b))));
 
-  env.setValue('<', types.createBuiltin((a, b) => toMalBool(a.compareTo(b) < 0)));
+  env.setValue('=', types.createBuiltin((a, b) => types.createBool(equals(a, b))));
 
-  env.setValue('<=', types.createBuiltin((a, b) => toMalBool(a.compareTo(b) <= 0)));
+  env.setValue('<', types.createBuiltin((a, b) => types.createBool(types.toJsNumber(a) < types.toJsNumber(b))));
 
-  env.setValue('>', types.createBuiltin((a, b) => toMalBool(a.compareTo(b) > 0)));
+  env.setValue('<=', types.createBuiltin((a, b) => types.createBool(types.toJsNumber(a) <= types.toJsNumber(b))));
 
-  env.setValue('>=', types.createBuiltin((a, b) => toMalBool(a.compareTo(b) >= 0)));
+  env.setValue('>', types.createBuiltin((a, b) => types.createBool(types.toJsNumber(a) > types.toJsNumber(b))));
 
-  env.setValue('empty?', types.createBuiltin(list => toMalBool(types.lengthOf(list) <= 0)));
+  env.setValue('>=', types.createBuiltin((a, b) => types.createBool(types.toJsNumber(a) >= types.toJsNumber(b))));
+
+  env.setValue('empty?', types.createBuiltin(list => types.createBool(types.lengthOf(list) <= 0)));
 
   env.setValue('nth', types.createBuiltin((list, index) => {
     if (index < 0 || index >= types.lengthOf(list)) {
@@ -55,10 +56,7 @@ export function bindTo (env) {
     if (list === types.NIL) {
       return types.createNumber(0);
     }
-    if ('length' in list) {
-      return types.createNumber(types.lengthOf(list));
-    }
-    throw new Error(`count not supported on this type: ${list.constructor.name}`);
+    return types.createNumber(types.lengthOf(list));
   }));
 
   env.setValue('cons', types.createBuiltin((value, list) => types.createList([ value, ...types.getItems(list) ])));
@@ -88,24 +86,20 @@ export function bindTo (env) {
     return types.NIL;
   }));
 
-  env.setValue('read-string', types.createBuiltin(input => readString(input.value)));
+  env.setValue('read-string', types.createBuiltin(string => readString(types.toJsString(string))));
 
   env.setValue('slurp', types.createBuiltin(filePath => {
-    const absPath = path.resolve(process.cwd(), filePath.value);
+    const absPath = path.resolve(process.cwd(), types.toJsString(filePath));
     return types.createString(fs.readFileSync(absPath, { encoding: 'utf-8' }));
   }));
 
-  env.setValue('deref', types.createBuiltin(atom => atom.ref));
+  env.setValue('deref', types.createBuiltin(atom => types.deref(atom)));
 
-  env.setValue('reset!', types.createBuiltin((atom, malValue) => {
-    atom.ref = malValue;
-    return malValue;
-  }));
+  env.setValue('reset!', types.createBuiltin((atom, newValue) => types.reset(atom, newValue)));
 
   env.setValue('swap!', types.createBuiltin((atom, fn, ...args) => {
-    const newValue = fn.apply([ atom.ref, ...args ]);
-    atom.ref = newValue;
-    return newValue;
+    const newValue = fn.apply([ types.deref(atom), ...args ]);
+    return types.reset(atom, newValue);
   }));
 
   env.setValue('throw', types.createBuiltin(exception => {
@@ -130,18 +124,25 @@ export function bindTo (env) {
     ]));
   }));
 
-  env.setValue('dissoc', types.createBuiltin((hashMap, ...keys) => {
-    return types.createHashMap(new Map([
-      ...[...types.getItems(hashMap).entries()].filter(([ key ]) => !keys.some(toDissoc => toDissoc.equals(key)))
-    ]));
+  env.setValue('dissoc', types.createBuiltin((hashMap, ...keysToRemove) => {
+    const entries = [...types.getItems(hashMap).entries()];
+    const newEntries = entries.filter(([ key ]) => !keysToRemove.some(keyToRemove => equals(key, keyToRemove)));
+    return types.createHashMap(new Map([...newEntries]));
   }));
 
-  env.setValue('get', types.createBuiltin((hashMap, key) => {
+  function findValue (hashMap, keyToFind) {
     if (hashMap === types.NIL) {
-      return types.NIL;
+      return null;
+    } else if (types.isHashMap(hashMap)) {
+      const entries = [...types.getItems(hashMap).entries()];
+      const entry = entries.find(([ key ]) => equals(key, keyToFind));
+      return entry ? entry[1] : null;
+    } else {
+      throw new Error('Operation only allowed on hashmap');
     }
-    return hashMap.get(key);
-  }));
+  }
+
+  env.setValue('get', types.createBuiltin((hashMap, key) => findValue(hashMap, key) || types.NIL));
 
   env.setValue('keys', types.createBuiltin(hashMap => types.createList([...types.getItems(hashMap).keys()])));
 
@@ -155,29 +156,29 @@ export function bindTo (env) {
 
   env.setValue('atom', types.createBuiltin(malValue => types.createAtom(malValue)));
 
-  env.setValue('symbol', types.createBuiltin(name => types.createSymbol(name.value)));
+  env.setValue('symbol', types.createBuiltin(name => types.createSymbol(types.toJsString(name))));
 
-  env.setValue('keyword', types.createBuiltin(name => types.createKeyword(name.value)));
+  env.setValue('keyword', types.createBuiltin(name => types.createKeyword(types.toJsString(name))));
 
-  env.setValue('list?', types.createBuiltin(maybeList => toMalBool(types.isList(maybeList))));
+  env.setValue('list?', types.createBuiltin(maybeList => types.createBool(types.isList(maybeList))));
 
-  env.setValue('vector?', types.createBuiltin(maybeVector => toMalBool(types.isVector(maybeVector))));
+  env.setValue('vector?', types.createBuiltin(maybeVector => types.createBool(types.isVector(maybeVector))));
 
-  env.setValue('sequential?', types.createBuiltin(maybeSequential => toMalBool(types.isSequential(maybeSequential))));
+  env.setValue('sequential?', types.createBuiltin(maybeSequential => types.createBool(types.isSequential(maybeSequential))));
 
-  env.setValue('map?', types.createBuiltin(maybeHashMap => toMalBool(types.isHashMap(maybeHashMap))));
+  env.setValue('map?', types.createBuiltin(maybeHashMap => types.createBool(types.isHashMap(maybeHashMap))));
 
-  env.setValue('contains?', types.createBuiltin((hashMap, key) => toMalBool(hashMap.has(key))));
+  env.setValue('contains?', types.createBuiltin((hashMap, key) => types.createBool(!!findValue(hashMap, key))));
 
-  env.setValue('atom?', types.createBuiltin(maybeAtom => toMalBool(types.isAtom(maybeAtom))));
+  env.setValue('atom?', types.createBuiltin(maybeAtom => types.createBool(types.isAtom(maybeAtom))));
 
-  env.setValue('symbol?', types.createBuiltin(maybeSymbol => toMalBool(types.isSymbol(maybeSymbol))));
+  env.setValue('symbol?', types.createBuiltin(maybeSymbol => types.createBool(types.isSymbol(maybeSymbol))));
 
-  env.setValue('keyword?', types.createBuiltin(maybeKeyword => toMalBool(types.isKeyword(maybeKeyword))));
+  env.setValue('keyword?', types.createBuiltin(maybeKeyword => types.createBool(types.isKeyword(maybeKeyword))));
 
-  env.setValue('nil?', types.createBuiltin(maybeNil => toMalBool(maybeNil === types.NIL)));
+  env.setValue('nil?', types.createBuiltin(maybeNil => types.createBool(maybeNil === types.NIL)));
 
-  env.setValue('true?', types.createBuiltin(maybeTrue => toMalBool(maybeTrue === types.TRUE)));
+  env.setValue('true?', types.createBuiltin(maybeTrue => types.createBool(maybeTrue === types.TRUE)));
 
-  env.setValue('false?', types.createBuiltin(maybeFalse => toMalBool(maybeFalse === types.FALSE)));
+  env.setValue('false?', types.createBuiltin(maybeFalse => types.createBool(maybeFalse === types.FALSE)));
 }

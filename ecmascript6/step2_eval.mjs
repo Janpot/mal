@@ -8,10 +8,10 @@ function READ (input) {
 }
 
 const replEnv = {
-  '+': types.createBuiltin((a, b) => types.createNumber(a.value + b.value)),
-  '-': types.createBuiltin((a, b) => types.createNumber(a.value - b.value)),
-  '*': types.createBuiltin((a, b) => types.createNumber(a.value * b.value)),
-  '/': types.createBuiltin((a, b) => types.createNumber(a.value / b.value))
+  '+': types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) + types.toJsNumber(b))),
+  '-': types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) - types.toJsNumber(b))),
+  '*': types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) * types.toJsNumber(b))),
+  '/': types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) / types.toJsNumber(b)))
 };
 
 function evalAst (ast, env) {

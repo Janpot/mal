@@ -141,10 +141,6 @@ class MalNumber extends MalType {
     return this.hasSameType(other) && (this.value === other.value);
   }
 
-  compareTo (other) {
-    return this.value - other.value;
-  }
-
   toString (readable = false) {
     return String(this.value);
   }
@@ -262,6 +258,10 @@ export class MalException extends Error {
 
 // type creation
 
+export function createBool (value) {
+  return value ? TRUE : FALSE;
+}
+
 export function createList (items) {
   return new MalList(items);
 }
@@ -344,28 +344,57 @@ export function isAtom (value) {
   return value instanceof MalAtom;
 }
 
+// conversion helpers to javascript types
+
+export function toJsNumber (malNumber) {
+  if (isNumber(malNumber)) {
+    return malNumber.value;
+  } else {
+    throw new Error(`can\t cast ${malNumber} to a number`);
+  }
+}
+
+export function toJsString (malString) {
+  if (isString(malString)) {
+    return malString.value;
+  } else {
+    throw new Error(`can\t cast ${malString} to a string`);
+  }
+}
+
 // collection helpers
 
-export function lengthOf (collection) {
-  if (isList(collection)) {
-    return collection.items.length;
-  } else if (isVector(collection)) {
-    return collection.items.length;
-  } else if (isHashMap(collection)) {
-    return collection.items.size;
+export function lengthOf (malCollection) {
+  if (isList(malCollection)) {
+    return malCollection.items.length;
+  } else if (isVector(malCollection)) {
+    return malCollection.items.length;
+  } else if (isHashMap(malCollection)) {
+    return malCollection.items.size;
   } else {
     throw new Error('Can\'t get length of a non-collection');
   }
 }
 
-export function getItems (collection) {
-  if (isList(collection)) {
-    return collection.items;
-  } else if (isVector(collection)) {
-    return collection.items;
-  } else if (isHashMap(collection)) {
-    return collection.items;
+export function getItems (malCollection) {
+  if (isList(malCollection)) {
+    return malCollection.items;
+  } else if (isVector(malCollection)) {
+    return malCollection.items;
+  } else if (isHashMap(malCollection)) {
+    return malCollection.items;
   } else {
     throw new Error('Can\'t get items from a non-collection');
   }
+}
+
+// atom helpers
+
+export function reset (atom, value) {
+  atom.ref = value;
+  return atom.ref;
+}
+
+export function deref (atom) {
+  return atom.ref;
 }
