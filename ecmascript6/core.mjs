@@ -36,21 +36,25 @@ export function bindTo (env) {
 
   env.setValue('>=', MalFunction.builtin((a, b) => toMalBool(a.compareTo(b) >= 0)));
 
-  env.setValue('list', MalFunction.builtin((...args) => new MalList(args)));
+  env.setValue('list', MalFunction.builtin((...items) => new MalList(items)));
 
-  env.setValue('list?', MalFunction.builtin(arg => toMalBool(arg instanceof MalList)));
+  env.setValue('list?', MalFunction.builtin(maybeList => toMalBool(maybeList instanceof MalList)));
 
-  env.setValue('empty?', MalFunction.builtin(arg => toMalBool(arg.length <= 0)));
+  env.setValue('empty?', MalFunction.builtin(list => toMalBool(list.length <= 0)));
 
-  env.setValue('count', MalFunction.builtin(arg => {
-    if (arg === MAL_NIL) {
+  env.setValue('count', MalFunction.builtin(list => {
+    if (list === MAL_NIL) {
       return new MalNumber(0);
     }
-    if ('length' in arg) {
-      return new MalNumber(arg.length);
+    if ('length' in list) {
+      return new MalNumber(list.length);
     }
-    throw new Error(`count not supported on this type: ${arg.constructor.name}`);
+    throw new Error(`count not supported on this type: ${list.constructor.name}`);
   }));
+
+  env.setValue('cons', MalFunction.builtin((value, list) => new MalList([ value, ...list.items ])));
+
+  env.setValue('concat', MalFunction.builtin((...lists) => new MalList([].concat(...lists.map(list => list.items)))));
 
   env.setValue('pr-str', MalFunction.builtin((...args) => {
     return new MalString(args.map(arg => printString(arg, true)).join(' '));
