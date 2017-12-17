@@ -11,10 +11,10 @@ function READ (input) {
 }
 
 const replEnv = new Env();
-replEnv.setValue('+', types.createBuiltin((a, b) => types.createNumber(a.value + b.value)));
-replEnv.setValue('-', types.createBuiltin((a, b) => types.createNumber(a.value - b.value)));
-replEnv.setValue('*', types.createBuiltin((a, b) => types.createNumber(a.value * b.value)));
-replEnv.setValue('/', types.createBuiltin((a, b) => types.createNumber(a.value / b.value)));
+replEnv.setValue('+', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) + types.toJsNumber(b))));
+replEnv.setValue('-', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) - types.toJsNumber(b))));
+replEnv.setValue('*', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) * types.toJsNumber(b))));
+replEnv.setValue('/', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) / types.toJsNumber(b))));
 
 function checkArgsLength (fnName, args, lower = -Infinity, upper = +Infinity) {
   if (args.length < lower) {

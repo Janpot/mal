@@ -6,11 +6,6 @@ import { pairwise } from './iterTools.mjs';
 import { ordinal } from './stringTools.mjs';
 import * as core from './core.mjs';
 import * as types from './types.mjs';
-const {
-  MalList,
-  MalSymbol,
-  MalVector
-} = types;
 
 const IS_RAW = process.argv[2] === '--raw';
 const ARGV = process.argv.slice(IS_RAW ? 3 : 2);
@@ -57,9 +52,9 @@ function evalAst (ast, env) {
       .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
-    const value = env.getValue(ast.name);
+    const value = env.getValue(types.getSymbolName(ast));
     if (!value) {
-      throw new Error(`'${ast.name}' not found`);
+      throw new Error(`'${types.getSymbolName(ast)}' not found`);
     }
     return value;
   } else {
@@ -71,12 +66,12 @@ function isFunctionCall (ast, fnName = null) {
   if (!types.isList(ast)) {
     return false;
   }
-  const rator = types.getItems(ast)[0];
-  if (!types.isSymbol(rator)) {
+  const operator = types.getItems(ast)[0];
+  if (!types.isSymbol(operator)) {
     return false;
   }
   if (fnName !== null) {
-    return types.getSymbolName(rator) === fnName;
+    return types.getSymbolName(operator) === fnName;
   }
   return true;
 }

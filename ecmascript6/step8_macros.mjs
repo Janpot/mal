@@ -52,9 +52,9 @@ function evalAst (ast, env) {
       .map(([ key, value ]) => [ EVAL(key, env), EVAL(value, env) ]);
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
-    const value = env.getValue(ast.name);
+    const value = env.getValue(types.getSymbolName(ast));
     if (!value) {
-      throw new Error(`'${ast.name}' not found`);
+      throw new Error(`'${types.getSymbolName(ast)}' not found`);
     }
     return value;
   } else {
@@ -66,12 +66,12 @@ function isFunctionCall (ast, fnName = null) {
   if (!types.isList(ast)) {
     return false;
   }
-  const rator = types.getItems(ast)[0];
-  if (!types.isSymbol(rator)) {
+  const operator = types.getItems(ast)[0];
+  if (!types.isSymbol(operator)) {
     return false;
   }
   if (fnName !== null) {
-    return types.getSymbolName(rator) === fnName;
+    return types.getSymbolName(operator) === fnName;
   }
   return true;
 }
@@ -80,8 +80,8 @@ function isMacroCall (ast, env) {
   if (!isFunctionCall(ast)) {
     return false;
   }
-  const fnName = ast.items[0].name;
-  const macro = env.getValue(fnName);
+  const operator = types.getItems(ast)[0];
+  const macro = env.getValue(types.getSymbolName(operator));
   if (!macro) {
     return false;
   }
@@ -90,9 +90,9 @@ function isMacroCall (ast, env) {
 
 function macroexpand (ast, env) {
   while (isMacroCall(ast, env)) {
-    const [ macroFnSymbol, ...macroArgs ] = ast.items;
-    const macro = env.getValue(macroFnSymbol.name);
-    ast = macro.apply(macroArgs);
+    const [ operator, ...operands ] = types.getItems(ast);
+    const macro = env.getValue(types.getSymbolName(operator));
+    ast = macro.apply(operands);
   }
   return ast;
 }
@@ -167,7 +167,7 @@ function EVAL (ast, env) {
             throw new Error('defmacro! expects a function declaration as second parameter');
           }
           value.isMacro = true;
-          env.setValue(args[0].name, value);
+          env.setValue(types.getSymbolName(args[0]), value);
           return value;
         }
         case 'macroexpand': {
