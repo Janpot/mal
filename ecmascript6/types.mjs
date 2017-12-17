@@ -1,12 +1,4 @@
 class MalType {
-  constructor () {
-    this._isSequential = false;
-  }
-
-  get count () {
-    throw new Error(`count not supported on this type: ${this.constructor.name}`);
-  }
-
   hasSameType (other) {
     return this.constructor === other.constructor;
   }
@@ -21,7 +13,7 @@ class MalType {
 }
 
 function equalsSequential (a, b) {
-  if (!a._isSequential || !b._isSequential) {
+  if (!isSequential(a) || !isSequential(b)) {
     return false;
   }
   if (a.length !== b.length) {
@@ -39,7 +31,6 @@ class MalList extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
-    this._isSequential = true;
   }
 
   get length () {
@@ -59,7 +50,6 @@ class MalVector extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
-    this._isSequential = true;
   }
 
   get length () {
