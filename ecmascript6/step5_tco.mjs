@@ -3,6 +3,7 @@ import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
 import { Env } from './env.mjs';
 import { pairwise } from './iterTools.mjs';
+import { ordinal } from './stringTools.mjs';
 import * as core from './core.mjs';
 
 import {
@@ -21,6 +22,24 @@ function READ (input) {
 
 const replEnv = new Env();
 core.bindTo(replEnv);
+
+function checkArgsLength (fnName, args, lower = -Infinity, upper = +Infinity) {
+  if (args.length < lower) {
+    throw new Error(`Too few arguments to ${fnName}`);
+  } else if (args.length > upper) {
+    throw new Error(`Too many arguments to ${fnName}`);
+  }
+}
+
+function checkArgsTypes (fnName, args, types = []) {
+  for (let i = 0; i < Math.min(types.length, args.length); i += 1) {
+    const oneOfType = Array.isArray(types[i]) ? types[i] : [ types[i] ];
+    if (!oneOfType.includes(args[i].constructor)) {
+      const typeStr = oneOfType.map(type => type.name).join(' or a ');
+      throw new Error(`${ordinal(i + 1)} argument to ${fnName} must be a ${typeStr}`);
+    }
+  }
+}
 
 function evalAst (ast, env) {
   switch (ast.constructor) {
@@ -57,13 +76,8 @@ function EVAL (ast, env) {
     if (func instanceof MalSymbol) {
       switch (func.name) {
         case 'def!':
-          if (args.length < 2) {
-            throw new Error('Too few arguments to def!');
-          } else if (args.length > 2) {
-            throw new Error('Too many arguments to def!');
-          } else if (!(args[0] instanceof MalSymbol)) {
-            throw new Error('First argument to def! must be a Symbol');
-          }
+          checkArgsLength('def!', args, 2, 2);
+          checkArgsTypes('def!', args, [ MalSymbol ]);
           const value = EVAL(args[1], env);
           env.setValue(args[0].name, value);
           return value;
@@ -93,11 +107,7 @@ function EVAL (ast, env) {
           ast = args[args.length - 1];
           continue;
         case 'if':
-          if (args.length < 2) {
-            throw new Error('Too few arguments to if');
-          } else if (args.length > 3) {
-            throw new Error('Too many arguments to if');
-          }
+          checkArgsLength('if', args, 2, 3);
           const conditionResult = EVAL(args[0], env);
           if (![ MAL_NIL, MAL_FALSE ].includes(conditionResult)) {
             // TCO
@@ -111,11 +121,8 @@ function EVAL (ast, env) {
             return MAL_NIL;
           }
         case 'fn*':
-          if (args.length < 1) {
-            throw new Error('Parameter declaration missing');
-          } else if (![ MalList, MalVector ].includes(args[0].constructor)) {
-            throw new Error('Parameter declaration def should be a vector');
-          }
+          checkArgsLength('fn*', args, 1, +Infinity);
+          checkArgsTypes('fn*', args, [ [ MalList, MalVector ] ]);
           const [ paramDecl, ...fnBody ] = args;
           const params = paramDecl.items.map(bind => {
             if (!(bind instanceof MalSymbol)) {

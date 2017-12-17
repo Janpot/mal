@@ -3,6 +3,7 @@ import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
 import { Env } from './env.mjs';
 import { pairwise } from './iterTools.mjs';
+import { ordinal } from './stringTools.mjs';
 
 import {
   MalList,
@@ -23,6 +24,24 @@ replEnv.setValue('+', MalFunction.builtin((a, b) => new MalNumber(a.value + b.va
 replEnv.setValue('-', MalFunction.builtin((a, b) => new MalNumber(a.value - b.value)));
 replEnv.setValue('*', MalFunction.builtin((a, b) => new MalNumber(a.value * b.value)));
 replEnv.setValue('/', MalFunction.builtin((a, b) => new MalNumber(a.value / b.value)));
+
+function checkArgsLength (fnName, args, lower = -Infinity, upper = +Infinity) {
+  if (args.length < lower) {
+    throw new Error(`Too few arguments to ${fnName}`);
+  } else if (args.length > upper) {
+    throw new Error(`Too many arguments to ${fnName}`);
+  }
+}
+
+function checkArgsTypes (fnName, args, types = []) {
+  for (let i = 0; i < Math.min(types.length, args.length); i += 1) {
+    const oneOfType = Array.isArray(types[i]) ? types[i] : [ types[i] ];
+    if (!oneOfType.includes(args[i].constructor)) {
+      const typeStr = oneOfType.map(type => type.name).join(' or a ');
+      throw new Error(`${ordinal(i + 1)} argument to ${fnName} must be a ${typeStr}`);
+    }
+  }
+}
 
 function evalAst (ast, env) {
   switch (ast.constructor) {
@@ -58,13 +77,8 @@ function EVAL (ast, env) {
   if (func instanceof MalSymbol) {
     switch (func.name) {
       case 'def!':
-        if (args.length < 2) {
-          throw new Error('Too few arguments to def!');
-        } else if (args.length > 2) {
-          throw new Error('Too many arguments to def!');
-        } else if (!(args[0] instanceof MalSymbol)) {
-          throw new Error('First argument to def! must be a Symbol');
-        }
+        checkArgsLength('def!', args, 2, 2);
+        checkArgsTypes('def!', args, [ MalSymbol ]);
         const value = EVAL(args[1], env);
         env.setValue(args[0].name, value);
         return value;
