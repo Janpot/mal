@@ -362,6 +362,10 @@ export function toJsString (malString) {
   }
 }
 
+export function isEqual (a, b) {
+  return a.equals(b);
+}
+
 // collection helpers
 
 export function lengthOf (malCollection) {
@@ -397,4 +401,10 @@ export function reset (atom, value) {
 
 export function deref (atom) {
   return atom.ref;
+}
+
+// symbol helpers
+
+export function getSymbolName (symbol) {
+  return symbol.name;
 }

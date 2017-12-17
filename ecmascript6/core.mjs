@@ -6,11 +6,6 @@ import { pairwise } from './iterTools.mjs';
 import * as types from './types.mjs';
 
 export function bindTo (env) {
-  function equals (a, b) {
-    // TO DO: rewrite this without boxed types
-    return a.equals(b);
-  }
-
   env.setValue('+', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) + types.toJsNumber(b))));
 
   env.setValue('-', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) - types.toJsNumber(b))));
@@ -19,7 +14,7 @@ export function bindTo (env) {
 
   env.setValue('/', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) / types.toJsNumber(b))));
 
-  env.setValue('=', types.createBuiltin((a, b) => types.createBool(equals(a, b))));
+  env.setValue('=', types.createBuiltin((a, b) => types.createBool(types.isEqual(a, b))));
 
   env.setValue('<', types.createBuiltin((a, b) => types.createBool(types.toJsNumber(a) < types.toJsNumber(b))));
 
@@ -126,7 +121,7 @@ export function bindTo (env) {
 
   env.setValue('dissoc', types.createBuiltin((hashMap, ...keysToRemove) => {
     const entries = [...types.getItems(hashMap).entries()];
-    const newEntries = entries.filter(([ key ]) => !keysToRemove.some(keyToRemove => equals(key, keyToRemove)));
+    const newEntries = entries.filter(([ key ]) => !keysToRemove.some(keyToRemove => types.isEqual(key, keyToRemove)));
     return types.createHashMap(new Map([...newEntries]));
   }));
 
@@ -135,7 +130,7 @@ export function bindTo (env) {
       return null;
     } else if (types.isHashMap(hashMap)) {
       const entries = [...types.getItems(hashMap).entries()];
-      const entry = entries.find(([ key ]) => equals(key, keyToFind));
+      const entry = entries.find(([ key ]) => types.isEqual(key, keyToFind));
       return entry ? entry[1] : null;
     } else {
       throw new Error('Operation only allowed on hashmap');

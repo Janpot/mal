@@ -133,13 +133,33 @@ function EVAL (ast, env) {
 
     const [ func, ...args ] = ast.items;
     if (types.isSymbol(func)) {
-      switch (func.name) {
+      switch (types.getSymbolName(func)) {
         case 'def!': {
           checkArgsLength('def!', args, 2, 2);
           checkArgsTypes('def!', args, [ 'symbol' ]);
           const value = EVAL(args[1], env);
-          env.setValue(args[0].name, value);
+          env.setValue(types.getSymbolName(args[0]), value);
           return value;
+        }
+        case 'let*': {
+          if (!types.isSequential(args[0])) {
+            throw new Error('Bad binding form, expected vector');
+          } else if (types.lengthOf(args[0]) % 2 !== 0) {
+            throw new Error('let! requires an even number of forms in binding vector');
+          }
+          const newEnv = new Env(env);
+          for (const [ symbol, expression ] of pairwise(types.getItems(args[0]))) {
+            if (!types.isSymbol(symbol)) {
+              throw new Error('Bad binding form, expected symbol');
+            }
+            const value = EVAL(expression, newEnv);
+            newEnv.setValue(types.getSymbolName(symbol), value);
+          }
+
+          // TCO
+          env = newEnv;
+          ast = args[1];
+          continue;
         }
         case 'defmacro!': {
           checkArgsLength('defmacro!', args, 2, 2);
@@ -155,26 +175,6 @@ function EVAL (ast, env) {
         case 'macroexpand': {
           checkArgsLength('defmacro!', args, 1, 1);
           return macroexpand(args[0], env);
-        }
-        case 'let*': {
-          if (!types.isSequential(args[0])) {
-            throw new Error('Bad binding form, expected vector');
-          } else if (args[0].length % 2 !== 0) {
-            throw new Error('let! requires an even number of forms in binding vector');
-          }
-          const newEnv = new Env(env);
-          for (const [ symbol, expression ] of pairwise(args[0].items)) {
-            if (!types.isSymbol(symbol)) {
-              throw new Error('Bad binding form, expected symbol');
-            }
-            const value = EVAL(expression, newEnv);
-            newEnv.setValue(symbol.name, value);
-          }
-
-          // TCO
-          env = newEnv;
-          ast = args[1];
-          continue;
         }
         case 'do': {
           evalAst(types.createList(args.slice(0, -1)), env);
