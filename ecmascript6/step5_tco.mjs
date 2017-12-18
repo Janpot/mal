@@ -173,7 +173,10 @@ function rep (input) {
   return PRINT(EVAL(READ(input), replEnv));
 }
 
-rep('(def! not (fn* (a) (if a false true)))');
+rep(`
+  (def! not (fn* (a)
+    (if a false true)))
+`);
 
 while (true) {
   const input = prompt('user> ');

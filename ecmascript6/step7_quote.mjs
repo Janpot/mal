@@ -220,8 +220,18 @@ function rep (input) {
   return PRINT(EVAL(READ(input), replEnv));
 }
 
-rep('(def! not (fn* (a) (if a false true)))');
-rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
+rep(`
+  (def! not (fn* (a)
+    (if a false true)))
+`);
+
+rep(`
+  (def! load-file (fn* (f)
+    (let* [ *file* f ]
+      (eval
+        (read-string
+          (str "(do " (slurp f) ")"))))))
+`);
 
 if (ARGV.length > 0) {
   const cmd = `(load-file ${printString(types.createString(ARGV[0]), true)})`;
