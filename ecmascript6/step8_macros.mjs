@@ -268,10 +268,9 @@ rep(`
 
 rep(`
   (def! load-file (fn* (f)
-    (let* [ *file* f ]
-      (eval
-        (read-string
-          (str "(do " (slurp f) ")"))))))
+    (eval
+      (read-string
+        (str "(do " (slurp f) ")")))))
 `);
 
 rep(`
