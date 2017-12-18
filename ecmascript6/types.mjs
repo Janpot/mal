@@ -137,9 +137,18 @@ class MalFunction extends MalType {
 }
 
 class MalAtom extends MalType {
-  constructor (value) {
+  constructor (value = NIL) {
     super();
-    this.ref = value;
+    this._ref = value;
+  }
+
+  deref () {
+    return this._ref;
+  }
+
+  reset (value) {
+    this._ref = value;
+    return value;
   }
 
   equals (other) {
@@ -147,11 +156,13 @@ class MalAtom extends MalType {
   }
 }
 
-export const NIL = Symbol('nil');
+class MalConstant extends MalType {}
 
-export const TRUE = Symbol('true');
+export const NIL = new MalConstant();
 
-export const FALSE = Symbol('false');
+export const TRUE = new MalConstant();
+
+export const FALSE = new MalConstant();
 
 export class MalException extends Error {
   constructor (innerValue) {
@@ -309,11 +320,11 @@ export function lengthOf (malCollection) {
 
 export function reset (atom, value) {
   atom.ref = value;
-  return atom.ref;
+  return atom.reset(value);
 }
 
 export function deref (atom) {
-  return atom.ref;
+  return atom.deref();
 }
 
 // symbol helpers
