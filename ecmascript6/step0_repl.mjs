@@ -1,4 +1,4 @@
-import readline from 'readline';
+import { prompt } from './readline.mjs';
 
 function READ (input) {
   return input;
@@ -16,17 +16,14 @@ function rep (input) {
   return PRINT(EVAL(READ(input)));
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: 'user> ',
-  terminal: !process.argv.slice(2).includes('--raw')
-});
-
-rl.on('line', input => {
-  const output = rep(input);
-  console.log(output);
-  rl.prompt();
-});
-
-rl.prompt();
+while (true) {
+  const input = prompt('user> ');
+  try {
+    const output = rep(input);
+    if (output) {
+      console.log(output);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}

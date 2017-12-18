@@ -1,4 +1,4 @@
-import readline from 'readline';
+import { prompt } from './readline.mjs';
 import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
 import { Env } from './env.mjs';
@@ -227,14 +227,8 @@ if (ARGV.length > 0) {
   const cmd = `(load-file ${printString(types.createString(ARGV[0]), true)})`;
   rep(cmd);
 } else {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: 'user> ',
-    terminal: !IS_RAW
-  });
-
-  rl.on('line', input => {
+  while (true) {
+    const input = prompt('user> ');
     try {
       const output = rep(input);
       if (output) {
@@ -243,8 +237,5 @@ if (ARGV.length > 0) {
     } catch (error) {
       console.error(error);
     }
-    rl.prompt();
-  });
-
-  rl.prompt();
+  }
 }

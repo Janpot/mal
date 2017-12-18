@@ -1,4 +1,8 @@
 class MalType {
+  constructor () {
+    this.meta = null;
+  }
+
   hasSameType (other) {
     return this.constructor === other.constructor;
   }
@@ -29,6 +33,10 @@ class MalList extends MalType {
     this.items = items;
   }
 
+  clone () {
+    return new MalList(this.items);
+  }
+
   equals (other) {
     return equalsSequential(this, other);
   }
@@ -38,6 +46,10 @@ class MalVector extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
+  }
+
+  clone () {
+    return new MalVector(this.items);
   }
 
   equals (other) {
@@ -54,6 +66,10 @@ class MalHashMap extends MalType {
   get (key) {
     const entry = [...this.items.entries()].find(([ existingKey ]) => existingKey.equals(key));
     return entry ? entry[1] : NIL;
+  }
+
+  clone () {
+    return new MalHashMap(this.items);
   }
 
   equals (other) {
@@ -125,6 +141,13 @@ class MalFunction extends MalType {
     this._apply = apply;
     this.canTco = false;
     this.isMacro = false;
+  }
+
+  clone () {
+    const clone = new MalFunction(this.env, this.params, this.fnBody, this._apply);
+    clone.canTco = this.canTco;
+    clone.isMacro = this.isMacro;
+    return clone;
   }
 
   apply (args) {
@@ -255,6 +278,10 @@ export function isFunction (value) {
   return value instanceof MalFunction;
 }
 
+export function isMacro (value) {
+  return isFunction(value) && value.isMacro;
+}
+
 export function isAtom (value) {
   return value instanceof MalAtom;
 }
@@ -265,6 +292,7 @@ export function toJsNumber (malNumber) {
   if (isNumber(malNumber)) {
     return malNumber.value;
   } else {
+    console.log(malNumber);
     throw new Error(`can\t cast ${malNumber} to a number`);
   }
 }
@@ -305,12 +333,12 @@ export function isEqual (a, b) {
 // collection helpers
 
 export function lengthOf (malCollection) {
-  if (isList(malCollection)) {
-    return malCollection.items.length;
-  } else if (isVector(malCollection)) {
-    return malCollection.items.length;
+  if (isList(malCollection) || isVector(malCollection)) {
+    return toJsArray(malCollection).length;
   } else if (isHashMap(malCollection)) {
-    return malCollection.items.size;
+    return toJsMap(malCollection).size;
+  } else if (isString(malCollection)) {
+    return toJsString(malCollection).length;
   } else {
     throw new Error('Can\'t get length of a non-collection');
   }
@@ -337,4 +365,16 @@ export function getSymbolName (symbol) {
 
 export function getKeywordName (keyword) {
   return keyword.name;
+}
+
+// meta helpers
+
+export function meta (value) {
+  return value.meta || NIL;
+}
+
+export function withMeta (value, meta) {
+  const clone = value.clone();
+  clone.meta = meta;
+  return clone;
 }

@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { pairwise } from './iterTools.mjs';
 import * as types from './types.mjs';
+import { prompt } from './readline.mjs';
 
 export function bindTo (env) {
   env.setValue('+', types.createBuiltin((a, b) => types.createNumber(types.toJsNumber(a) + types.toJsNumber(b))));
@@ -62,6 +63,28 @@ export function bindTo (env) {
     return types.createList(flattenedItems);
   }));
 
+  env.setValue('conj', types.createBuiltin((collection, ...elements) => {
+    if (types.isList(collection)) {
+      return types.createList(elements.reverse().concat(types.toJsArray(collection)));
+    } else if (types.isVector(collection)) {
+      return types.createVector(types.toJsArray(collection).concat(elements));
+    } else {
+      return types.NIL;
+    }
+  }));
+
+  env.setValue('seq', types.createBuiltin(arg => {
+    if (types.isList(arg) && types.lengthOf(arg) > 0) {
+      return arg;
+    } else if (types.isVector(arg) && types.lengthOf(arg) > 0) {
+      return types.createList(types.toJsArray(arg));
+    } else if (types.isString(arg) && types.lengthOf(arg) > 0) {
+      return types.createList(types.toJsString(arg).split('').map(character => types.createString(character)));
+    } else {
+      return types.NIL;
+    }
+  }));
+
   env.setValue('pr-str', types.createBuiltin((...args) => {
     return types.createString(args.map(arg => printString(arg, true)).join(' '));
   }));
@@ -80,6 +103,10 @@ export function bindTo (env) {
     const output = args.map(arg => printString(arg, false)).join(' ');
     console.log(output);
     return types.NIL;
+  }));
+
+  env.setValue('readline', types.createBuiltin(question => {
+    return types.createString(prompt(types.toJsString(question)));
   }));
 
   env.setValue('read-string', types.createBuiltin(string => readString(types.toJsString(string))));
@@ -126,6 +153,10 @@ export function bindTo (env) {
     return types.createHashMap(new Map([...newEntries]));
   }));
 
+  env.setValue('meta', types.createBuiltin(fn => types.meta(fn)));
+
+  env.setValue('with-meta', types.createBuiltin((fn, value) => types.withMeta(fn, value)));
+
   function findValue (hashMap, keyToFind) {
     if (hashMap === types.NIL) {
       return null;
@@ -137,6 +168,8 @@ export function bindTo (env) {
       throw new Error('Operation only allowed on hashmap');
     }
   }
+
+  env.setValue('time-ms', types.createBuiltin((hashMap, key) => types.createNumber(Date.now())));
 
   env.setValue('get', types.createBuiltin((hashMap, key) => findValue(hashMap, key) || types.NIL));
 
@@ -154,6 +187,10 @@ export function bindTo (env) {
 
   env.setValue('symbol', types.createBuiltin(name => types.createSymbol(types.toJsString(name))));
 
+  env.setValue('string', types.createBuiltin(name => types.createNumber(types.toJsString(name))));
+
+  env.setValue('number', types.createBuiltin(name => types.createNumber(types.toJsString(name))));
+
   env.setValue('keyword', types.createBuiltin(name => types.createKeyword(types.toJsString(name))));
 
   env.setValue('list?', types.createBuiltin(maybeList => types.createBool(types.isList(maybeList))));
@@ -169,6 +206,14 @@ export function bindTo (env) {
   env.setValue('atom?', types.createBuiltin(maybeAtom => types.createBool(types.isAtom(maybeAtom))));
 
   env.setValue('symbol?', types.createBuiltin(maybeSymbol => types.createBool(types.isSymbol(maybeSymbol))));
+
+  env.setValue('fn?', types.createBuiltin(maybeSymbol => types.createBool(types.isFunction(maybeSymbol) && !types.isMacro(maybeSymbol))));
+
+  env.setValue('macro?', types.createBuiltin(maybeSymbol => types.createBool(types.isMacro(maybeSymbol))));
+
+  env.setValue('string?', types.createBuiltin(maybeSymbol => types.createBool(types.isString(maybeSymbol))));
+
+  env.setValue('number?', types.createBuiltin(maybeSymbol => types.createBool(types.isNumber(maybeSymbol))));
 
   env.setValue('keyword?', types.createBuiltin(maybeKeyword => types.createBool(types.isKeyword(maybeKeyword))));
 

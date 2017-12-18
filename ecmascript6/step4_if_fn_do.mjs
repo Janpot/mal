@@ -1,4 +1,4 @@
-import readline from 'readline';
+import { prompt } from './readline.mjs';
 import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
 import { Env } from './env.mjs';
@@ -147,14 +147,8 @@ function rep (input) {
 
 rep('(def! not (fn* (a) (if a false true)))');
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: 'user> ',
-  terminal: !process.argv.slice(2).includes('--raw')
-});
-
-rl.on('line', input => {
+while (true) {
+  const input = prompt('user> ');
   try {
     const output = rep(input);
     if (output) {
@@ -163,7 +157,4 @@ rl.on('line', input => {
   } catch (error) {
     console.error(error);
   }
-  rl.prompt();
-});
-
-rl.prompt();
+}

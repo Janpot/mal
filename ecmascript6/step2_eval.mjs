@@ -1,4 +1,4 @@
-import readline from 'readline';
+import { prompt } from './readline.mjs';
 import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
 import * as types from './types.mjs';
@@ -58,14 +58,8 @@ function rep (input) {
   return PRINT(EVAL(READ(input), replEnv));
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: 'user> ',
-  terminal: !process.argv.slice(2).includes('--raw')
-});
-
-rl.on('line', input => {
+while (true) {
+  const input = prompt('user> ');
   try {
     const output = rep(input);
     if (output) {
@@ -74,7 +68,4 @@ rl.on('line', input => {
   } catch (error) {
     console.error(error);
   }
-  rl.prompt();
-});
-
-rl.prompt();
+}

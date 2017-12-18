@@ -18,6 +18,7 @@ const replEnv = new Env();
 core.bindTo(replEnv);
 replEnv.setValue('eval', types.createBuiltin(ast => EVAL(ast, replEnv)));
 replEnv.setValue('*ARGV*', types.createList(ARGV.slice(1).map(arg => types.createString(arg))));
+replEnv.setValue('*host-language*', types.createString('ecmascript6'));
 
 function checkArgsLength (fnName, args, lower = -Infinity, upper = +Infinity) {
   if (args.length < lower) {
@@ -290,12 +291,15 @@ function rep (input) {
 rep('(def! not (fn* (a) (if a false true)))');
 rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))');
 rep('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons \'cond (rest (rest xs)))))))');
-rep('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))');
+rep('(def! *gensym-counter* (atom 0))');
+rep('(def! gensym (fn* [] (symbol (str "G__" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))');
+rep('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))');
 
 if (ARGV.length > 0) {
   const cmd = `(load-file ${printString(types.createString(ARGV[0]), true)})`;
   rep(cmd);
 } else {
+  rep('(println (str "Mal [" *host-language* "]"))');
   while (true) {
     const input = prompt('user> ');
     try {

@@ -1,0 +1,13 @@
+{
+  "name": "mal",
+  "version": "1.0.0",
+  "description": "The Make-A-Lisp Process",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jan Potoms",
+  "dependencies": {
+    "readline-sync": "^1.4.7"
+  }
+}
