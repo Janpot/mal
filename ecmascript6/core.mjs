@@ -157,21 +157,9 @@ export function bindTo (env) {
 
   env.setValue('with-meta', types.createBuiltin((fn, value) => types.withMeta(fn, value)));
 
-  function findValue (hashMap, keyToFind) {
-    if (hashMap === types.NIL) {
-      return null;
-    } else if (types.isHashMap(hashMap)) {
-      const entries = [...types.toJsMap(hashMap).entries()];
-      const entry = entries.find(([ key ]) => types.isEqual(key, keyToFind));
-      return entry ? entry[1] : null;
-    } else {
-      throw new Error('Operation only allowed on hashmap');
-    }
-  }
-
   env.setValue('time-ms', types.createBuiltin((hashMap, key) => types.createNumber(Date.now())));
 
-  env.setValue('get', types.createBuiltin((hashMap, key) => findValue(hashMap, key) || types.NIL));
+  env.setValue('get', types.createBuiltin((hashMap, key) => types.get(hashMap, key)));
 
   env.setValue('keys', types.createBuiltin(hashMap => types.createList([...types.toJsMap(hashMap).keys()])));
 
@@ -201,7 +189,7 @@ export function bindTo (env) {
 
   env.setValue('map?', types.createBuiltin(maybeHashMap => types.createBool(types.isHashMap(maybeHashMap))));
 
-  env.setValue('contains?', types.createBuiltin((hashMap, key) => types.createBool(!!findValue(hashMap, key))));
+  env.setValue('contains?', types.createBuiltin((hashMap, key) => types.createBool(types.contains(hashMap, key))));
 
   env.setValue('atom?', types.createBuiltin(maybeAtom => types.createBool(types.isAtom(maybeAtom))));
 

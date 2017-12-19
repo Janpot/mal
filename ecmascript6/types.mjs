@@ -1,32 +1,11 @@
 import { printString } from './printer.mjs';
 
+const META_KEY = Symbol('Meta key');
+
 class MalType {
-  constructor () {
-    this.meta = null;
-  }
-
-  hasSameType (other) {
-    return this.constructor === other.constructor;
-  }
-
   equals (other) {
     throw new Error('Must be overridden');
   }
-}
-
-function equalsSequential (a, b) {
-  if (!isSequential(a) || !isSequential(b)) {
-    return false;
-  }
-  if (lengthOf(a) !== lengthOf(b)) {
-    return false;
-  }
-  for (let i = 0; i < lengthOf(a); i += 1) {
-    if (!isEqual(a.items[i], b.items[i])) {
-      return false;
-    }
-  }
-  return true;
 }
 
 class MalList extends MalType {
@@ -34,70 +13,12 @@ class MalList extends MalType {
     super();
     this.items = items;
   }
-
-  clone () {
-    return new MalList(this.items);
-  }
-
-  equals (other) {
-    return equalsSequential(this, other);
-  }
 }
 
 class MalVector extends MalType {
   constructor (items = []) {
     super();
     this.items = items;
-  }
-
-  clone () {
-    return new MalVector(this.items);
-  }
-
-  equals (other) {
-    return equalsSequential(this, other);
-  }
-}
-
-class MalHashMap extends MalType {
-  constructor (items = new Map()) {
-    super();
-    this.items = items;
-  }
-
-  get (key) {
-    const entry = [...this.items.entries()].find(([ existingKey ]) => isEqual(existingKey, key));
-    return entry ? entry[1] : NIL;
-  }
-
-  clone () {
-    return new MalHashMap(this.items);
-  }
-
-  equals (other) {
-    if (!this.hasSameType(other)) {
-      return false;
-    }
-    if (lengthOf(this) !== lengthOf(other)) {
-      return false;
-    }
-    for (const key of this.items.keys()) {
-      if (!isEqual(this.get(key), other.get(key))) {
-        return false;
-      }
-    }
-    return true;
-  }
-}
-
-class MalSymbol extends MalType {
-  constructor (name) {
-    super();
-    this.name = name;
-  }
-
-  equals (other) {
-    return this.hasSameType(other) && (this.name === other.name);
   }
 }
 
@@ -108,7 +29,7 @@ class MalKeyword extends MalType {
   }
 
   equals (other) {
-    return this.hasSameType(other) && (this.name === other.name);
+    return isKeyword(other) && (this.name === other.name);
   }
 }
 
@@ -123,19 +44,8 @@ class MalFunction extends MalType {
     this.isMacro = false;
   }
 
-  clone () {
-    const clone = new MalFunction(this.env, this.params, this.fnBody, this._apply);
-    clone.canTco = this.canTco;
-    clone.isMacro = this.isMacro;
-    return clone;
-  }
-
   apply (args) {
     return this._apply(this.env, this.params, this.fnBody, args);
-  }
-
-  equals (other) {
-    return false;
   }
 }
 
@@ -155,15 +65,15 @@ class MalAtom extends MalType {
   }
 
   equals (other) {
-    return this.hasSameType(other) && (this.ref === other.ref);
+    return isAtom(other) && (this.ref === other.ref);
   }
 }
 
-export const NIL = Symbol('nil');
+export const NIL = null;
 
-export const TRUE = Symbol('true');
+export const TRUE = true;
 
-export const FALSE = Symbol('false');
+export const FALSE = false;
 
 export class MalException extends Error {
   constructor (innerValue) {
@@ -187,11 +97,11 @@ export function createVector (items) {
 }
 
 export function createHashMap (items) {
-  return new MalHashMap(items);
+  return new Map(items);
 }
 
 export function createSymbol (name) {
-  return new MalSymbol(name);
+  return Symbol.for(name);
 }
 
 export function createNumber (value) {
@@ -233,11 +143,11 @@ export function isSequential (value) {
 }
 
 export function isHashMap (value) {
-  return value instanceof MalHashMap;
+  return value instanceof Map;
 }
 
 export function isSymbol (value) {
-  return value instanceof MalSymbol;
+  return typeof value === 'symbol';
 }
 
 export function isNumber (value) {
@@ -294,15 +204,43 @@ export function toJsArray (malSequence) {
 
 export function toJsMap (malHashMap) {
   if (isHashMap(malHashMap)) {
-    return malHashMap.items;
+    return malHashMap;
   } else {
     throw new Error('Can\'t get items from a non-collection');
   }
 }
 
 export function isEqual (a, b) {
-  if (a === NIL || a === TRUE || a === FALSE || isNumber(a) || isString(a)) {
+  if (a === NIL || a === TRUE || a === FALSE || isNumber(a) || isString(a) || isSymbol(a)) {
     return a === b;
+  } else if (isSequential(a)) {
+    if (!isSequential(b)) {
+      return false;
+    }
+    if (lengthOf(a) !== lengthOf(b)) {
+      return false;
+    }
+    for (let i = 0; i < lengthOf(a); i += 1) {
+      if (!isEqual(nth(a, i), nth(b, i))) {
+        return false;
+      }
+    }
+    return true;
+  } else if (isHashMap(a)) {
+    if (!isHashMap(b)) {
+      return false;
+    }
+    if (lengthOf(a) !== lengthOf(b)) {
+      return false;
+    }
+    for (const [ key, value ] of toJsMap(a).entries()) {
+      if (!isEqual(get(b, key), value)) {
+        return false;
+      }
+    }
+    return true;
+  } else if (isFunction(a)) {
+    return false;
   }
   return a.equals(b);
 }
@@ -321,6 +259,40 @@ export function lengthOf (malCollection) {
   }
 }
 
+export function get (hashMap, keyToFind) {
+  if (hashMap === NIL) {
+    return NIL;
+  } else if (isHashMap(hashMap)) {
+    for (const [ key, value ] of toJsMap(hashMap).entries()) {
+      if (isEqual(key, keyToFind)) {
+        return value;
+      }
+    }
+    return NIL;
+  } else {
+    throw new Error('Operation only allowed on hashmap');
+  }
+}
+
+export function nth (sequence, n) {
+  return toJsArray(sequence)[n];
+}
+
+export function contains (hashMap, keyToFind) {
+  if (hashMap === NIL) {
+    return false;
+  } else if (isHashMap(hashMap)) {
+    for (const [ key ] of toJsMap(hashMap).entries()) {
+      if (isEqual(key, keyToFind)) {
+        return true;
+      }
+    }
+    return false;
+  } else {
+    throw new Error('Operation only allowed on hashmap');
+  }
+}
+
 // atom helpers
 
 export function reset (atom, value) {
@@ -335,7 +307,7 @@ export function deref (atom) {
 // symbol helpers
 
 export function getSymbolName (symbol) {
-  return symbol.name;
+  return Symbol.keyFor(symbol);
 }
 
 // keyword helpers
@@ -347,11 +319,28 @@ export function getKeywordName (keyword) {
 // meta helpers
 
 export function meta (value) {
-  return value.meta || NIL;
+  return value[META_KEY] || NIL;
+}
+
+function clone (value) {
+  if (isVector(value)) {
+    return createVector(toJsArray(value));
+  } else if (isList(value)) {
+    return createList(toJsArray(value));
+  } else if (isHashMap(value)) {
+    return createHashMap(toJsMap(value));
+  } else if (isFunction(value)) {
+    const clone = new MalFunction(value.env, value.params, value.fnBody, value._apply);
+    clone.canTco = value.canTco;
+    clone.isMacro = value.isMacro;
+    return clone;
+  } else {
+    throw new Error('Can only clone compound types');
+  }
 }
 
 export function withMeta (value, meta) {
-  const clone = value.clone();
-  clone.meta = meta;
-  return clone;
+  const newValue = clone(value);
+  newValue[META_KEY] = meta;
+  return newValue;
 }

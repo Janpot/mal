@@ -8,6 +8,7 @@
   },
   "author": "Jan Potoms",
   "dependencies": {
-    "readline-sync": "^1.4.7"
+    "readline-sync": "^1.4.7",
+    "ffi": "git://github.com/node-ffi/node-ffi.git"
   }
 }

@@ -319,6 +319,8 @@ rep(`
             or_FIXME
             (or ~@(rest xs))))))))`);
 
+rep('(= {:a 11} {:a 11})');
+
 if (ARGV.length > 0) {
   const cmd = `(load-file ${printString(types.createString(ARGV[0]), true)})`;
   rep(cmd);

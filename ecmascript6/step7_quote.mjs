@@ -227,6 +227,8 @@ rep(`
         (str "(do " (slurp f) ")")))))
 `);
 
+rep('(= (quote abc) nil)');
+
 if (ARGV.length > 0) {
   const cmd = `(load-file ${printString(types.createString(ARGV[0]), true)})`;
   rep(cmd);
