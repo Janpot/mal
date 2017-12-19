@@ -1,5 +1,7 @@
 import * as types from './types.mjs';
 
+export const NOT_FOUND = Symbol('Not found');
+
 export class Env {
   constructor (outer = null, binds = [], exprs = []) {
     this._outer = outer;
@@ -33,6 +35,6 @@ export class Env {
     if (env) {
       return env._values.get(key);
     }
-    return null;
+    return NOT_FOUND;
   }
 }

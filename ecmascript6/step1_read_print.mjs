@@ -11,10 +11,7 @@ function EVAL (input) {
 }
 
 function PRINT (input) {
-  if (input) {
-    return printString(input, true);
-  }
-  return null;
+  return printString(input, true);
 }
 
 function rep (input) {

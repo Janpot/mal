@@ -108,7 +108,7 @@ function readForm (reader) {
     case '~@': return readWrappingReaderMacro(reader, 'splice-unquote');
     case '@': return readWrappingReaderMacro(reader, 'deref');
     case '^': return readWithMetaReaderMacro(reader);
-    case EOF: return null;
+    case EOF: return types.NIL;
     default: return readAtom(reader);
   }
 }

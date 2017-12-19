@@ -1,3 +1,5 @@
+import { printString } from './printer.mjs';
+
 class MalType {
   constructor () {
     this.meta = null;
@@ -20,7 +22,7 @@ function equalsSequential (a, b) {
     return false;
   }
   for (let i = 0; i < lengthOf(a); i += 1) {
-    if (!a.items[i].equals(b.items[i])) {
+    if (!isEqual(a.items[i], b.items[i])) {
       return false;
     }
   }
@@ -64,7 +66,7 @@ class MalHashMap extends MalType {
   }
 
   get (key) {
-    const entry = [...this.items.entries()].find(([ existingKey ]) => existingKey.equals(key));
+    const entry = [...this.items.entries()].find(([ existingKey ]) => isEqual(existingKey, key));
     return entry ? entry[1] : NIL;
   }
 
@@ -80,7 +82,7 @@ class MalHashMap extends MalType {
       return false;
     }
     for (const key of this.items.keys()) {
-      if (!this.get(key).equals(other.get(key))) {
+      if (!isEqual(this.get(key), other.get(key))) {
         return false;
       }
     }
@@ -96,28 +98,6 @@ class MalSymbol extends MalType {
 
   equals (other) {
     return this.hasSameType(other) && (this.name === other.name);
-  }
-}
-
-class MalNumber extends MalType {
-  constructor (value) {
-    super();
-    this.value = value;
-  }
-
-  equals (other) {
-    return this.hasSameType(other) && (this.value === other.value);
-  }
-}
-
-class MalString extends MalType {
-  constructor (value) {
-    super();
-    this.value = value;
-  }
-
-  equals (other) {
-    return this.hasSameType(other) && (this.value === other.value);
   }
 }
 
@@ -179,13 +159,11 @@ class MalAtom extends MalType {
   }
 }
 
-class MalConstant extends MalType {}
+export const NIL = Symbol('nil');
 
-export const NIL = new MalConstant();
+export const TRUE = Symbol('true');
 
-export const TRUE = new MalConstant();
-
-export const FALSE = new MalConstant();
+export const FALSE = Symbol('false');
 
 export class MalException extends Error {
   constructor (innerValue) {
@@ -217,11 +195,11 @@ export function createSymbol (name) {
 }
 
 export function createNumber (value) {
-  return new MalNumber(value);
+  return Number(value);
 }
 
 export function createString (value) {
-  return new MalString(value);
+  return String(value);
 }
 
 export function createKeyword (name) {
@@ -263,11 +241,11 @@ export function isSymbol (value) {
 }
 
 export function isNumber (value) {
-  return value instanceof MalNumber;
+  return typeof value === 'number';
 }
 
 export function isString (value) {
-  return value instanceof MalString;
+  return typeof value === 'string';
 }
 
 export function isKeyword (value) {
@@ -290,18 +268,17 @@ export function isAtom (value) {
 
 export function toJsNumber (malNumber) {
   if (isNumber(malNumber)) {
-    return malNumber.value;
+    return malNumber;
   } else {
-    console.log(malNumber);
-    throw new Error(`can\t cast ${malNumber} to a number`);
+    throw new Error(`can\t cast ${printString(malNumber, true)} to a number`);
   }
 }
 
 export function toJsString (malString) {
   if (isString(malString)) {
-    return malString.value;
+    return malString;
   } else {
-    throw new Error(`can\t cast ${malString} to a string`);
+    throw new Error(`can\t cast ${printString(malString, true)} to a string`);
   }
 }
 
@@ -324,7 +301,7 @@ export function toJsMap (malHashMap) {
 }
 
 export function isEqual (a, b) {
-  if (a === NIL || a === TRUE || a === FALSE) {
+  if (a === NIL || a === TRUE || a === FALSE || isNumber(a) || isString(a)) {
     return a === b;
   }
   return a.equals(b);

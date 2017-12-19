@@ -59,9 +59,7 @@ function evalAst (ast, env) {
 }
 
 function EVAL (ast, env) {
-  if (!ast) {
-    return types.NIL;
-  } else if (!types.isList(ast)) {
+  if (!types.isList(ast)) {
     return evalAst(ast, env);
   } else if (types.lengthOf(ast) <= 0) {
     return ast;
@@ -102,9 +100,6 @@ function EVAL (ast, env) {
 }
 
 function PRINT (output) {
-  if (!output) {
-    return output;
-  }
   return printString(output, true);
 }
 

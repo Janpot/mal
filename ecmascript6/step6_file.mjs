@@ -1,7 +1,7 @@
 import { prompt } from './readline.mjs';
 import { readString } from './reader.mjs';
 import { printString } from './printer.mjs';
-import { Env } from './env.mjs';
+import { Env, NOT_FOUND } from './env.mjs';
 import { pairwise } from './iterTools.mjs';
 import { ordinal } from './stringTools.mjs';
 import * as core from './core.mjs';
@@ -53,7 +53,7 @@ function evalAst (ast, env) {
     return types.createHashMap(new Map(evaluatedEntries));
   } else if (types.isSymbol(ast)) {
     const value = env.getValue(types.getSymbolName(ast));
-    if (!value) {
+    if (value === NOT_FOUND) {
       throw new Error(`'${types.getSymbolName(ast)}' not found`);
     }
     return value;
@@ -64,9 +64,7 @@ function evalAst (ast, env) {
 
 function EVAL (ast, env) {
   while (true) {
-    if (!ast) {
-      return types.NIL;
-    } else if (!types.isList(ast)) {
+    if (!types.isList(ast)) {
       return evalAst(ast, env);
     } else if (types.lengthOf(ast) <= 0) {
       return ast;
@@ -168,9 +166,6 @@ function EVAL (ast, env) {
 }
 
 function PRINT (output) {
-  if (!output) {
-    return output;
-  }
   return printString(output, true);
 }
 
