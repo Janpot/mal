@@ -1,2 +1,2 @@
 #!/bin/bash
-exec node --experimental-modules $(dirname $0)/${STEP:-stepA_mal}.mjs ${RAW:+--raw} "${@}"
+exec node --experimental-modules --inspect $(dirname $0)/${STEP:-stepA_mal}.mjs ${RAW:+--raw} "${@}"

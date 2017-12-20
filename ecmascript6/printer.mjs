@@ -41,6 +41,7 @@ export function printString (malType, printReadably = false) {
   } else if (types.isAtom(malType)) {
     return `(atom ${printString(types.deref(malType), printReadably)})`;
   } else {
+    console.log(malType.constructor.name);
     return malType.toString(printReadably);
   }
 }

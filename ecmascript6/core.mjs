@@ -44,7 +44,7 @@ export function bindTo (env) {
 
   env.setValue('rest', types.createBuiltin(list => {
     if (list === types.NIL) {
-      return types.createList();
+      return types.createList([]);
     }
     return types.createList(types.toJsArray(list).slice(1));
   }));
@@ -140,12 +140,7 @@ export function bindTo (env) {
     return types.createList(types.toJsArray(list).map(item => fn.apply([ item ])));
   }));
 
-  env.setValue('assoc', types.createBuiltin((hashMap, ...newItems) => {
-    return types.createHashMap(new Map([
-      ...pairwise(newItems),
-      ...types.toJsMap(hashMap).entries()
-    ]));
-  }));
+  env.setValue('assoc', types.createBuiltin((hashMap, ...newItems) => types.assoc(hashMap, ...newItems)));
 
   env.setValue('dissoc', types.createBuiltin((hashMap, ...keysToRemove) => {
     const entries = [...types.toJsMap(hashMap).entries()];

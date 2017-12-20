@@ -250,6 +250,8 @@
 ;=>2
 (get hm4 :c)
 ;=>1
+(count hm4)
+;=>3
 
 ;; Testing nil as hash-map values
 (contains? {:abc nil} :abc)

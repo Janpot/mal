@@ -1,41 +1,20 @@
 import { printString } from './printer.mjs';
+import { pairwise } from './iterTools.mjs';
 
 const META_KEY = Symbol('Meta key');
 
-class MalType {
-  equals (other) {
-    throw new Error('Must be overridden');
-  }
-}
+class MalList extends Array {}
 
-class MalList extends MalType {
-  constructor (items = []) {
-    super();
-    this.items = items;
-  }
-}
+class MalVector extends Array {}
 
-class MalVector extends MalType {
-  constructor (items = []) {
-    super();
-    this.items = items;
-  }
-}
-
-class MalKeyword extends MalType {
+class MalKeyword {
   constructor (name) {
-    super();
     this.name = name;
   }
-
-  equals (other) {
-    return isKeyword(other) && (this.name === other.name);
-  }
 }
 
-class MalFunction extends MalType {
+class MalFunction {
   constructor (env, params, fnBody, apply) {
-    super();
     this.env = env;
     this.params = params;
     this.fnBody = fnBody;
@@ -49,9 +28,8 @@ class MalFunction extends MalType {
   }
 }
 
-class MalAtom extends MalType {
+class MalAtom {
   constructor (value = NIL) {
-    super();
     this._ref = value;
   }
 
@@ -62,10 +40,6 @@ class MalAtom extends MalType {
   reset (value) {
     this._ref = value;
     return value;
-  }
-
-  equals (other) {
-    return isAtom(other) && (this.ref === other.ref);
   }
 }
 
@@ -89,11 +63,11 @@ export function createBool (value) {
 }
 
 export function createList (items) {
-  return new MalList(items);
+  return MalList.from(items);
 }
 
 export function createVector (items) {
-  return new MalVector(items);
+  return MalVector.from(items);
 }
 
 export function createHashMap (items) {
@@ -139,7 +113,7 @@ export function isVector (value) {
 }
 
 export function isSequential (value) {
-  return isList(value) || isVector(value);
+  return Array.isArray(value);
 }
 
 export function isHashMap (value) {
@@ -194,9 +168,9 @@ export function toJsString (malString) {
 
 export function toJsArray (malSequence) {
   if (isList(malSequence)) {
-    return malSequence.items;
+    return malSequence;
   } else if (isVector(malSequence)) {
-    return malSequence.items;
+    return malSequence;
   } else {
     throw new Error('Can\'t get items from a non-collection');
   }
@@ -241,8 +215,12 @@ export function isEqual (a, b) {
     return true;
   } else if (isFunction(a)) {
     return false;
+  } else if (isAtom(a)) {
+    return isAtom(b) && isEqual(deref(a), deref(b));
+  } else if (isKeyword(a)) {
+    return isKeyword(b) && (getKeywordName(a) === getKeywordName(b));
   }
-  return a.equals(b);
+  return false;
 }
 
 // collection helpers
@@ -269,6 +247,23 @@ export function get (hashMap, keyToFind) {
       }
     }
     return NIL;
+  } else {
+    throw new Error('Operation only allowed on hashmap');
+  }
+}
+
+export function assoc (hashMap, ...keyValues) {
+  if (hashMap === NIL || isHashMap(hashMap)) {
+    const result = hashMap === NIL ? createHashMap() : createHashMap(toJsMap(hashMap));
+    for (const [ key, value ] of pairwise(keyValues)) {
+      const existingKey = [...hashMap.keys()].find(existingKey => isEqual(existingKey, key));
+      if (existingKey === undefined) {
+        result.set(key, value);
+      } else {
+        result.set(existingKey, value);
+      }
+    }
+    return result;
   } else {
     throw new Error('Operation only allowed on hashmap');
   }
