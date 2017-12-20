@@ -7,6 +7,27 @@ class MalList extends Array {}
 
 class MalVector extends Array {}
 
+class MalMap extends Map {
+  get (key) {
+    for (const [ existingKey, value ] of this.entries()) {
+      if (isEqual(existingKey, key)) {
+        return value;
+      }
+    }
+    return NIL;
+  }
+
+  set (key, value) {
+    for (const existingKey of this.keys()) {
+      if (isEqual(existingKey, key)) {
+        super.set(existingKey, value);
+        return;
+      }
+    }
+    super.set(key, value);
+  }
+}
+
 class MalKeyword {
   constructor (name) {
     this.name = name;
@@ -71,7 +92,7 @@ export function createVector (items) {
 }
 
 export function createHashMap (items) {
-  return new Map(items);
+  return new MalMap(items);
 }
 
 export function createSymbol (name) {
@@ -237,16 +258,11 @@ export function lengthOf (malCollection) {
   }
 }
 
-export function get (hashMap, keyToFind) {
+export function get (hashMap, key) {
   if (hashMap === NIL) {
     return NIL;
   } else if (isHashMap(hashMap)) {
-    for (const [ key, value ] of toJsMap(hashMap).entries()) {
-      if (isEqual(key, keyToFind)) {
-        return value;
-      }
-    }
-    return NIL;
+    return hashMap.get(key);
   } else {
     throw new Error('Operation only allowed on hashmap');
   }
@@ -256,12 +272,7 @@ export function assoc (hashMap, ...keyValues) {
   if (hashMap === NIL || isHashMap(hashMap)) {
     const result = hashMap === NIL ? createHashMap() : createHashMap(toJsMap(hashMap));
     for (const [ key, value ] of pairwise(keyValues)) {
-      const existingKey = [...hashMap.keys()].find(existingKey => isEqual(existingKey, key));
-      if (existingKey === undefined) {
-        result.set(key, value);
-      } else {
-        result.set(existingKey, value);
-      }
+      result.set(key, value);
     }
     return result;
   } else {
