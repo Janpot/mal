@@ -307,7 +307,8 @@ rep(`
           (cons
             'cond
             (rest
-              (rest xs)))))))`);
+              (rest xs)))))))`
+);
 
 rep(`(def! *gensym-counter* (atom 0))`);
 
@@ -334,7 +335,8 @@ rep(`
             (if
               ~condvar
               ~condvar
-              (or ~@(rest xs)))))))))`);
+              (or ~@(rest xs)))))))))`
+);
 
 if (ARGV.length > 0) {
   const cmd = `(load-file ${printString(types.createString(ARGV[0]), true)})`;

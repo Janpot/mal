@@ -306,7 +306,8 @@ rep(`
           (cons
             'cond
             (rest
-              (rest xs)))))))`);
+              (rest xs)))))))`
+);
 
 rep(`
   (defmacro! or (fn* (& xs)
@@ -317,7 +318,8 @@ rep(`
         \`(let* (or_FIXME ~(first xs))
           (if or_FIXME
             or_FIXME
-            (or ~@(rest xs))))))))`);
+            (or ~@(rest xs))))))))`
+);
 
 if (ARGV.length > 0) {
   const cmd = `(load-file ${printString(types.createString(ARGV[0]), true)})`;
