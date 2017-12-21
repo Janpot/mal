@@ -280,7 +280,8 @@ rep(`
           (cons
             'cond
             (rest
-              (rest xs)))))))`);
+              (rest xs)))))))`
+);
 
 rep(`
   (defmacro! or (fn* (& xs)
